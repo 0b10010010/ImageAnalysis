@@ -1,0 +1,19 @@
+# Local setup related
+
+*.last
+/logs/
+
+# IntelliJ
+
+/.idea/
+*.iml
+
+# Build
+
+!build/wemi.kt
+build/*
+
+# Swap files
+
+~*
+*.swp
