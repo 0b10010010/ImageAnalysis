@@ -3,27 +3,25 @@
 """
 Created on Sat Jan 19 12:49:01 2019
 
-@author: alexk
+@author: Alex Kim, Braedon Smith
 """
 
 import sys
-import platform
 from os import listdir, path
 from PIL import Image, ExifTags
 from PyQt5.QtWidgets import (QMainWindow, QApplication, QDialog, QLineEdit, 
-                             QVBoxLayout, QAction, QMessageBox, QFileDialog,
-                             QSizePolicy, QPushButton, QHBoxLayout, QLabel,
-                             QGridLayout, QShortcut, QGraphicsView,
+                             QVBoxLayout, QAction, QSizePolicy, QHBoxLayout,
+                             QLabel, QGridLayout, QShortcut, QGraphicsView,
                              QGraphicsScene, QGraphicsPixmapItem, QFrame,
                              QToolButton, QRubberBand)
-from PyQt5.QtCore import (pyqtSignal, QPointF, Qt, QRectF, QRect, QSize, QPoint,
-                          QT_VERSION_STR, PYQT_VERSION_STR)
+from PyQt5.QtCore import (pyqtSignal, QPointF, Qt, QRectF, QRect, QSize, QPoint)
 from PyQt5.QtGui import QBrush, QColor, QPixmap, QKeySequence, QKeyEvent
+
 
 class PhotoViewer(QGraphicsView):
     photoClicked = pyqtSignal(QPointF)
-    keyPressed   = pyqtSignal(int)
-    rectChanged  = pyqtSignal(QRect)
+    keyPressed = pyqtSignal(int)
+    rectChanged = pyqtSignal(QRect)
     
     def __init__(self, parent):
         super(PhotoViewer, self).__init__(parent)
@@ -39,7 +37,7 @@ class PhotoViewer(QGraphicsView):
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setBackgroundBrush(QBrush(QColor(30, 30, 30)))
         self.setFrameShape(QFrame.NoFrame)
-        self.path = path.dirname(path.realpath(__file__)) + '/CamFeedbackTest/img/' # TODO: set to correct path
+        self.path = path.dirname(path.realpath(__file__)) + '/CamFeedbackTest/img/'  # TODO: set to correct path
 #        self.path = '/home/spycat/Desktop/ImageAnalysis/GUI/Img/'
         self.imgList = listdir(self.path)
         self.listLim = len(self.imgList)
@@ -48,44 +46,45 @@ class PhotoViewer(QGraphicsView):
         self.rubberBand = QRubberBand(QRubberBand.Rectangle, self)
         self.changeRubberBand = False
         
-    def getExif(self): # TODO: Create a dictionary instead of printing
+    def get_exif(self):
         img = Image.open(self.path + self.imgList[self.imgNumber])
-        exifData = img._getexif()
-        for tag, value in exifData.items():
-            if ExifTags.TAGS.get(tag) == 'Orientation':
-                print('%s = %s' % (ExifTags.TAGS.get(tag), value))
-            elif ExifTags.TAGS.get(tag) == 'DateTime':
-                print('%s = %s' % (ExifTags.TAGS.get(tag), value))
-            elif ExifTags.TAGS.get(tag) == 'FocalLength':
-                print('%s = %s' % (ExifTags.TAGS.get(tag), value))
-            elif ExifTags.TAGS.get(tag) == 'ExifImageWidth':
-                print('%s = %s' % (ExifTags.TAGS.get(tag), value))
-            elif ExifTags.TAGS.get(tag) == 'ExifImageHeight':
-                print('%s = %s' % (ExifTags.TAGS.get(tag), value))
-            elif ExifTags.TAGS.get(tag) == 'ExposureTime':
-                print('%s = %s' % (ExifTags.TAGS.get(tag), value))
-            elif ExifTags.TAGS.get(tag) == 'ISOSpeedRatings':
-                print('%s = %s' % (ExifTags.TAGS.get(tag), value))
+
+        return {
+            ExifTags.TAGS[k]: v
+            for k, v in img._getexif().items()
+            if k in ExifTags.TAGS
+        }
     
-    def hasPhoto(self):
+    def has_photo(self):
+        """
+        :return: Whether an image has been loaded
+        """
         return not self._empty
 
     def fitInView(self, scale=True):
         rect = QRectF(self._photo.pixmap().rect())
+
         if not rect.isNull():
             self.setSceneRect(rect)
-            if self.hasPhoto():
+
+            if self.has_photo():
                 unity = self.transform().mapRect(QRectF(0, 0, 1, 1))
                 self.scale(1 / unity.width(), 1 / unity.height())
-                viewrect = self.viewport().rect()
-                scenerect = self.transform().mapRect(rect)
-                factor = min(viewrect.width() / scenerect.width(),
-                             viewrect.height() / scenerect.height())
+                view_rect = self.viewport().rect()
+                scene_rect = self.transform().mapRect(rect)
+                factor = min(view_rect.width() / scene_rect.width(),
+                             view_rect.height() / scene_rect.height())
                 self.scale(factor, factor)
+
             self._zoom = 0
 
-    def setPhoto(self, pixmap=None):
+    def set_photo(self, pixmap=None):
+        """
+        Sets the photo currently in view.
+        :param pixmap: The photo to be displayed
+        """
         self._zoom = 0
+
         if pixmap and not pixmap.isNull():
             self._empty = False
             self.setDragMode(QGraphicsView.ScrollHandDrag)
@@ -94,16 +93,18 @@ class PhotoViewer(QGraphicsView):
             self._empty = True
             self.setDragMode(QGraphicsView.NoDrag)
             self._photo.setPixmap(QPixmap())
+
         self.fitInView()
 
     def wheelEvent(self, event):
-        if self.hasPhoto():
+        if self.has_photo():
             if event.angleDelta().y() > 0:
                 factor = 1.25
                 self._zoom += 1
             else:
                 factor = 0.8
                 self._zoom -= 1
+
             if self._zoom > 0:
                 self.scale(factor, factor)
             elif self._zoom == 0:
@@ -111,7 +112,7 @@ class PhotoViewer(QGraphicsView):
             else:
                 self._zoom = 0
 
-    def toggleDragMode(self):
+    def toggle_drag_mode(self):
         if self.dragMode() == QGraphicsView.ScrollHandDrag:
             self.setDragMode(QGraphicsView.NoDrag)
         elif not self._photo.pixmap().isNull():
@@ -141,20 +142,22 @@ class PhotoViewer(QGraphicsView):
         if self.changeRubberBand == True:
             self.rubberBand.setGeometry(QRect(self.origin, event.pos()).normalized())
             self.rectChanged.emit(self.rubberBand.geometry())
+
         QGraphicsView.mouseMoveEvent(self, event)
         
     def mouseReleaseEvent(self, event):
         if self.changeRubberBand == True:
             self.changeRubberBand = False
-            self.cropEvent()
+            self.crop_event()
+
         QGraphicsView.mouseReleaseEvent(self, event)
     
-    def cropEvent(self):
+    def crop_event(self):
 #        self.rubberBand.hide()
         self.currentQRect = self.rubberBand.geometry()
 #        self.rubberBand.deleteLater()
     
-    def saveCropEvent(self):
+    def save_crop_event(self):
         self.rubberBand.hide()
 #        self.rubberBand.deleteLater()
         self.cropQPixmap = self._photo.pixmap().copy(self.currentQRect)
@@ -166,42 +169,43 @@ class PhotoViewer(QGraphicsView):
             self.imgNumber += 1
             if self.listLim <= self.imgNumber:
                 self.imgNumber = self.listLim - 1
-            self.nextImage(self.imgNumber)
+            self.next_image(self.imgNumber)
             self.keyPressed.emit(self.imgNumber)
         elif key == Qt.Key_Left or key == Qt.Key_Up:
             self.imgNumber -= 1
             if self.imgNumber <= 0:
                 self.imgNumber = 0
-            self.nextImage(self.imgNumber)
+            self.next_image(self.imgNumber)
             self.keyPressed.emit(self.imgNumber)
         else:
             super(PhotoViewer, self).keyPressEvent(event)
 
-    def nextImage(self, imgNumber):
+    def next_image(self, img_number):
         pixmap = QPixmap(self.path + self.imgList[self.imgNumber])
-        self.setPhoto(pixmap)
+        self.set_photo(pixmap)
 
 
-class ReadTelemetryLog():
+class ReadTelemetryLog:
     def __init__(self):
         self.dict = {}
         self.infoByFrame = []
-        self.lattitudes = []
+        self.latitudes = []
         self.longitudes = []
         self.logFilePath = '/home/spycat/Desktop/SUASImageAnalysis/GUI/CamFeedbackTest/flight.txt'
         
-    def readAttitude(self):
+    def read_attitude(self):
         with open(self.logFilePath, 'rt') as in_file:
             for line in in_file:
 #                self.infoByFrame.append(line.split(','))
                 self.infoByFrame.append(line[39::])
 #                self.longitudes.append(line.)
 #        print(self.infoByFrame)
+
         for lines in self.infoByFrame:
-            self.lattitudes.append(lines[76:86].split(',')[0])
-        print(self.lattitudes[0])
+            self.latitudes.append(lines[76:86].split(',')[0])
+        print(self.latitudes[0])
         
-    def transform():
+    def transform(self):
         pass
 
 
@@ -209,7 +213,7 @@ class MainWindow(QMainWindow):
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
         self.viewer = PhotoViewer(self)
-        self.viewer.nextImage(self.viewer.imgNumber)
+        self.viewer.next_image(self.viewer.imgNumber)
         self.readLog = ReadTelemetryLog()
         
         # Add Window Title
@@ -217,7 +221,7 @@ class MainWindow(QMainWindow):
         
         #######################################################################
         # ADD SHORTCUTS
-        #######################################################################        
+        #######################################################################
 
         self.shortClose = QShortcut(QKeySequence('Ctrl+w'), self)
         self.shortClose.activated.connect(self.close)
@@ -253,88 +257,88 @@ class MainWindow(QMainWindow):
 
         # 'Load image' button
         self.btnLoad = QToolButton(self)
-        toolButtonSizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
-        self.btnLoad.setSizePolicy(toolButtonSizePolicy)
+        tool_button_size_policy = QSizePolicy(QSizePolicy.Preferred,
+                                              QSizePolicy.Fixed)
+        self.btnLoad.setSizePolicy(tool_button_size_policy)
         self.btnLoad.setText('Load Image')
-        self.btnLoad.clicked.connect(self.viewer.nextImage)
+        self.btnLoad.clicked.connect(self.viewer.next_image)
         
         self.loadedImg = QLabel('Frame #:')
         self.loadedImg.setFixedWidth(100)
         self.loadedImgNumber = QLineEdit(self)
         self.loadedImgNumber.setReadOnly(True)
         self.loadedImgNumber.setFixedWidth(100)
-        self.loadedImgNumber.setText('%d' %self.viewer.imgNumber)
-        self.viewer.keyPressed.connect(self.keyPress)
+        self.loadedImgNumber.setText('%d' % self.viewer.imgNumber)
+        self.viewer.keyPressed.connect(self.key_press)
 
         # Button to change from drag/pan to getting pixel info
         self.btnPixInfo = QToolButton(self)
         self.btnPixInfo.setText('Pixel Info. Mode')
         self.btnPixInfo.setCheckable(True)
-        self.btnPixInfo.clicked.connect(self.pixInfo)
+        self.btnPixInfo.clicked.connect(self.pix_info)
         self.editPixInfo = QLineEdit(self)
         self.editPixInfo.setReadOnly(True)
         self.editPixInfo.setFixedWidth(100)
-        self.viewer.photoClicked.connect(self.photoClick)
+        self.viewer.photoClicked.connect(self.photo_click)
         
         # For image processing
         self.cropImage = QToolButton()
         self.cropImage.setText('Crop')
-        self.cropImage.clicked.connect(self.imageCrop)
+        self.cropImage.clicked.connect(self.image_crop)
 #        self.cropImage.setCheckable(True)
 #        self.cropImage.clicked.connect(self.crop)
 #        self.viewer.rectChanged.connect(self.imageCrop)
         
         # For image processing
         self.processImage = QToolButton(self)
-        self.processImage.setSizePolicy(toolButtonSizePolicy)
+        self.processImage.setSizePolicy(tool_button_size_policy)
         self.processImage.setText('Process')
         self.processImage.clicked.connect(ReadTelemetryLog.transform)
 
         # Image layout
-        Imglayout = QHBoxLayout(self)
-        Imglayout.addWidget(self.viewer)
+        img_layout = QHBoxLayout(self)
+        img_layout.addWidget(self.viewer)
 
         # Image Information
-        ImgInfo = QGridLayout(self)
-        ImgInfo.addWidget(self.loadedImg, 0, 0)
-        ImgInfo.addWidget(self.loadedImgNumber, 0, 1)
-        ImgInfo.addWidget(self.btnPixInfo, 1, 0)
-        ImgInfo.addWidget(self.editPixInfo, 1, 1)
+        img_info = QGridLayout(self)
+        img_info.addWidget(self.loadedImg)
+        img_info.addWidget(self.loadedImgNumber)
+        img_info.addWidget(self.btnPixInfo)
+        img_info.addWidget(self.editPixInfo)
     
         # Buttons layout
-        Btnlayout = QVBoxLayout(self)
-        Btnlayout.addWidget(self.btnLoad)
-        Btnlayout.addLayout(ImgInfo)
-        Btnlayout.addWidget(self.cropImage)
-        Btnlayout.addWidget(self.processImage)
-        Btnlayout.addStretch(1)
+        button_layout = QVBoxLayout(self)
+        button_layout.addWidget(self.btnLoad)
+        button_layout.addLayout(img_info)
+        button_layout.addWidget(self.cropImage)
+        button_layout.addWidget(self.processImage)
+        button_layout.addStretch(1)
         
         # Final GUI layout
-        GUILayout = QHBoxLayout()
-        GUILayout.addLayout(Imglayout)
-        GUILayout.addLayout(Btnlayout)
+        gui_layout = QHBoxLayout()
+        gui_layout.addLayout(img_layout)
+        gui_layout.addLayout(button_layout)
         
-        self.widget.setLayout(GUILayout)
+        self.widget.setLayout(gui_layout)
         self.setCentralWidget(self.widget)
 
-    def pixInfo(self):
-        self.viewer.toggleDragMode()
-        print(self.viewer.getExif())
+    def pix_info(self):
+        self.viewer.toggle_drag_mode()
+        print(self.viewer.get_exif())
         print('Frame #: %d' % self.viewer.imgNumber)
-        self.readLog.readAttitude()   
+        self.readLog.read_attitude()
         
-    def keyPress(self, imgNumber):
-        self.loadedImgNumber.setText('%d' % imgNumber)
+    def key_press(self, img_number):
+        self.loadedImgNumber.setText('%d' % img_number)
 
-    def photoClick(self, pos):
-        if self.viewer.dragMode()  == QGraphicsView.NoDrag:
+    def photo_click(self, pos):
+        if self.viewer.dragMode() == QGraphicsView.NoDrag:
             self.editPixInfo.setText('%d, %d' % (pos.x(), pos.y()))
             
-    def imageCrop(self):
-        self.viewer.saveCropEvent()
+    def image_crop(self):
+        self.viewer.save_crop_event()
         
-    
-    
+
 #    def about(self):
 #        QMessageBox.about(self, 
 #            "About Function Evaluator",
