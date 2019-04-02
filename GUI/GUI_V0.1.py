@@ -3,23 +3,23 @@
 """
 Created on Sat Jan 19 12:49:01 2019
 
-@author: alexk
+@author: Alex Kim, Braedon Smith
 """
 
 import sys
-import platform
 from os import listdir, path
 from PIL import Image, ExifTags
 from PyQt5.QtWidgets import (QMainWindow, QApplication, QDialog, QLineEdit, 
-                             QVBoxLayout, QAction, QMessageBox, QFileDialog,
-                             QSizePolicy, QPushButton, QHBoxLayout, QLabel,
-                             QGridLayout, QShortcut, QGraphicsView,
+                             QVBoxLayout, QAction, QSizePolicy, QHBoxLayout,
+                             QGridLayout, QShortcut, QGraphicsView, QLabel,
                              QGraphicsScene, QGraphicsPixmapItem, QFrame,
                              QToolButton, QRubberBand)
-from PyQt5.QtCore import (pyqtSignal, QPointF, Qt, QRectF, QRect, QSize, QPoint,
-                          QT_VERSION_STR, PYQT_VERSION_STR)
-from PyQt5.QtGui import QBrush, QColor, QPixmap, QKeySequence, QKeyEvent
+from PyQt5.QtCore import pyqtSignal, QPointF, Qt, QRectF, QRect, QSize
+from PyQt5.QtGui import QBrush, QColor, QPixmap, QKeySequence
 
+###############################################################################
+###############################################################################
+###############################################################################
 class PhotoViewer(QGraphicsView):
     photoClicked = pyqtSignal(QPointF)
     keyPressed   = pyqtSignal(int)
@@ -39,9 +39,9 @@ class PhotoViewer(QGraphicsView):
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setBackgroundBrush(QBrush(QColor(30, 30, 30)))
         self.setFrameShape(QFrame.NoFrame)
-        self.path = path.dirname(path.realpath(__file__)) + '/CamFeedbackTest/img/' # TODO: set to correct path
+        self.imgPath = path.dirname(path.realpath(__file__)) + '/CamFeedbackTest/img/' # TODO: set to correct path
 #        self.path = '/home/spycat/Desktop/ImageAnalysis/GUI/Img/'
-        self.imgList = listdir(self.path)
+        self.imgList = listdir(self.imgPath)
         self.listLim = len(self.imgList)
         self.imgNumber = 0
 #        self.origin = QPoint()
@@ -49,7 +49,7 @@ class PhotoViewer(QGraphicsView):
         self.changeRubberBand = False
         
     def getExif(self): # TODO: Create a dictionary instead of printing
-        img = Image.open(self.path + self.imgList[self.imgNumber])
+        img = Image.open(self.imgPath + self.imgList[self.imgNumber])
         exifData = img._getexif()
         for tag, value in exifData.items():
             if ExifTags.TAGS.get(tag) == 'Orientation':
@@ -118,39 +118,50 @@ class PhotoViewer(QGraphicsView):
             self.setDragMode(QGraphicsView.ScrollHandDrag)  
 
     def mousePressEvent(self, event):
-#        if self._photo.isUnderMouse():
-        if event.button() == Qt.LeftButton:
-            self.photoClicked.emit(self.mapToScene(event.pos()))
-            super(PhotoViewer, self).mousePressEvent(event) 
-        elif event.button() == Qt.RightButton:
-            self.changeRubberBand = True
-            self.origin = event.pos()
-            self.rubberBand.setGeometry(QRect(self.mapFromGlobal(self.origin), QSize()))
-            self.rectChanged.emit(self.rubberBand.geometry())
-            self.rubberBand.show()   
+        if self.hasPhoto():
+            if event.button() == Qt.LeftButton:
+                self.photoClicked.emit(self.mapToScene(event.pos()))
+    #            super(PhotoViewer, self).mousePressEvent(event) 
+            elif event.button() == Qt.RightButton:
+                self.changeRubberBand = True
+                self.origin = event.pos()
+                self.rubberBand.setGeometry(QRect(self.origin, QSize()))
+                self.rectChanged.emit(self.rubberBand.geometry())
+                self.rubberBand.show()
+                self.currentQRectTopLeft  = self.mapToScene(self.origin).toPoint()
+            QGraphicsView.mousePressEvent(self, event)
 #        super(PhotoViewer, self).mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
-        if self.changeRubberBand == True:
-            self.rubberBand.setGeometry(QRect(self.origin, event.pos()).normalized())
-            self.rectChanged.emit(self.rubberBand.geometry())
-        QGraphicsView.mouseMoveEvent(self, event)
+        if self.hasPhoto():
+            if self.changeRubberBand == True:
+                self.moveBand = event.pos()
+                self.rubberBand.setGeometry(QRect(self.origin, self.moveBand).normalized())
+                self.rectChanged.emit(self.rubberBand.geometry())
+            QGraphicsView.mouseMoveEvent(self, event)
+#        super(PhotoViewer, self).mouseMoveEvent(event)
         
     def mouseReleaseEvent(self, event):
-        if self.changeRubberBand == True:
-            self.changeRubberBand = False
-            self.botR = event.pos()
-            self.currentQRect = QRect(self.origin, self.botR)
-            self.currentQRectTL = self.mapToScene(self.origin)
-            self.currentQRectBR = self.mapToScene(self.botR)
-        QGraphicsView.mouseReleaseEvent(self, event)
+        if self.hasPhoto():
+            if self.changeRubberBand == True:
+                self.changeRubberBand = False
+                self.bottomRight = event.pos()
+                self.currentQRectBotRight = self.mapToScene(self.bottomRight).toPoint()
+            QGraphicsView.mouseReleaseEvent(self, event)
+#        super(PhotoViewer, self).mouseReleaseEvent(event)
     
     def saveCropEvent(self):
         self.rubberBand.hide()
+        self.imgCrop = (self.currentQRectTopLeft.x(), self.currentQRectTopLeft.y(),
+                        self.currentQRectBotRight.x(), self.currentQRectBotRight.y())
+        topLeftX   = min(self.currentQRectTopLeft.x(), self.currentQRectBotRight.x())
+        topLeftY   = min(self.currentQRectTopLeft.y(), self.currentQRectBotRight.y())
+        cropWidth  = abs(self.currentQRectTopLeft.x() - self.currentQRectBotRight.x())
+        cropHeight = abs(self.currentQRectTopLeft.y() - self.currentQRectBotRight.y())
+        
+        self.cropQPixmap = self._photo.pixmap().copy(topLeftX, topLeftY, cropWidth, cropHeight)                                            
+        self.cropQPixmap.save('Obj%d.png' %self.imgNumber)
 #        self.rubberBand.deleteLater()
-        Pic = QRect(self.currentQRectTL.toPoint(), self.currentQRectBR.toPoint())
-        self.cropQPixmap = self._photo.pixmap().copy(Pic)
-        self.cropQPixmap.save('cropped.png')
         
     def keyPressEvent(self, event):
         key = event.key()
@@ -170,17 +181,18 @@ class PhotoViewer(QGraphicsView):
             super(PhotoViewer, self).keyPressEvent(event)
 
     def nextImage(self, imgNumber):
-        pixmap = QPixmap(self.path + self.imgList[self.imgNumber])
-        self.setPhoto(pixmap)
+        nextImg = QPixmap(self.imgPath + self.imgList[self.imgNumber])
+        self.setPhoto(nextImg)
 
-
+###############################################################################
+###############################################################################
+###############################################################################
 class ReadTelemetryLog():
     def __init__(self):
         self.dict = {}
         self.infoByFrame = []
         self.lattitudes = []
         self.longitudes = []
-        #        self.logFilePath = '/home/spycat/Desktop/SUASImageAnalysis/GUI/CamFeedbackTest/flight.txt'
         self.logFilePath = path.dirname(path.realpath(__file__)) + '/CamFeedbackTest/flight.txt'
         
     def readAttitude(self):
@@ -197,12 +209,13 @@ class ReadTelemetryLog():
     def transform():
         pass
 
-
+###############################################################################
+###############################################################################
+###############################################################################
 class MainWindow(QMainWindow):
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
         self.viewer = PhotoViewer(self)
-        self.viewer.nextImage(self.viewer.imgNumber)
         self.readLog = ReadTelemetryLog()
         
         # Add Window Title
@@ -249,7 +262,7 @@ class MainWindow(QMainWindow):
         toolButtonSizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         self.btnLoad.setSizePolicy(toolButtonSizePolicy)
         self.btnLoad.setText('Load Image')
-        self.btnLoad.clicked.connect(self.viewer.nextImage)
+        self.btnLoad.clicked.connect(self.loadImage)
         
         self.loadedImg = QLabel('Frame #:')
         self.loadedImg.setFixedWidth(100)
@@ -274,11 +287,8 @@ class MainWindow(QMainWindow):
         self.cropImage.setSizePolicy(toolButtonSizePolicy)
         self.cropImage.setText('Crop and Process')
         self.cropImage.clicked.connect(self.imageCrop)
-        self.cropImage.clicked.connect(self.readLog.transform)
-#        self.cropImage.setCheckable(True)
-#        self.cropImage.clicked.connect(self.crop)
-#        self.viewer.rectChanged.connect(self.imageCrop)
-
+#        self.cropImage.clicked.connect(self.readLog.transform)
+        
         # Image layout
         Imglayout = QHBoxLayout()
         Imglayout.addWidget(self.viewer)
@@ -289,7 +299,7 @@ class MainWindow(QMainWindow):
         ImgInfo.addWidget(self.loadedImgNumber, 0, 1)
         ImgInfo.addWidget(self.btnPixInfo, 1, 0)
         ImgInfo.addWidget(self.editPixInfo, 1, 1)
-    
+        
         # Buttons layout
         Btnlayout = QVBoxLayout()
         Btnlayout.addWidget(self.btnLoad)
@@ -320,6 +330,9 @@ class MainWindow(QMainWindow):
             
     def imageCrop(self):
         self.viewer.saveCropEvent()
+    
+    def loadImage(self):
+        self.viewer.setPhoto(QPixmap(self.viewer.imgPath + self.viewer.imgList[self.viewer.imgNumber]))
         
 
 #    def about(self):
