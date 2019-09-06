@@ -171,14 +171,14 @@ class PhotoViewer(QGraphicsView):
     def keyPressEvent(self, event):
         key = event.key()
         if key == Qt.Key_Right or key == Qt.Key_Down:
-            self.updateImgDirectory()
+#            self.updateImgDirectory()
             self.imgNumber += 1
             if self.listLim <= self.imgNumber:
                 self.imgNumber = self.listLim - 1
             self.nextImage(self.imgNumber)
             self.keyPressed.emit(self.imgNumber)
         elif key == Qt.Key_Left or key == Qt.Key_Up:
-            self.updateImgDirectory()
+#            self.updateImgDirectory()
             self.imgNumber -= 1
             if self.imgNumber <= 0:
                 self.imgNumber = 0
@@ -327,6 +327,21 @@ class MainWindow(QMainWindow):
         self.widget.setLayout(GUILayout)
         self.setCentralWidget(self.widget)
         
+        # QTimer for updating image directory with new images taken
+        self.timer = QTimer(self)
+        self.timer.setInterval(3000) # update interval in ms (3 sec)
+        self.timer.timeout.connect(self.updateImgDir)
+    
+    def start(self):
+        # start QTimer thread
+        self.timer.start()
+        # use stop() to stop
+#        self.timer.stop()
+    
+    @pyqtSlot()
+    def updateImgDir(self):
+        self.viewer.updateImgDirectory()
+        
     def pixInfo(self):
         self.viewer.toggleDragMode()
         print(self.viewer.getExif())
@@ -359,5 +374,6 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
     window = MainWindow()
     window.showMaximized()
-    window.show()    
+    window.show()   
+    window.start()
     app.exec_()
