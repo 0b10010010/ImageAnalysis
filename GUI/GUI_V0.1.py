@@ -6,7 +6,7 @@ Created on Sat Jan 19 12:49:01 2019
 @author: Alex Kim, Braedon Smith
 """
 
-import sys
+import sys, time, threading
 from os import listdir, path
 from PIL import Image, ExifTags
 from PyQt5.QtWidgets import (QMainWindow, QApplication, QDialog, QLineEdit, 
@@ -14,8 +14,11 @@ from PyQt5.QtWidgets import (QMainWindow, QApplication, QDialog, QLineEdit,
                              QGridLayout, QShortcut, QGraphicsView, QLabel,
                              QGraphicsScene, QGraphicsPixmapItem, QFrame,
                              QToolButton, QRubberBand)
-from PyQt5.QtCore import pyqtSignal, QPointF, Qt, QRectF, QRect, QSize
+from PyQt5.QtCore import (pyqtSignal, pyqtSlot, QObject, QPointF, Qt, QRectF,
+                          QRect, QSize, QThread, QTimer)
 from PyQt5.QtGui import QBrush, QColor, QPixmap, QKeySequence
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
 
 ###############################################################################
 ###############################################################################
@@ -42,6 +45,7 @@ class PhotoViewer(QGraphicsView):
         self.imgPath = path.dirname(path.realpath(__file__)) + '/CamFeedbackTest/img/' # TODO: set to correct path
 #        self.path = '/home/spycat/Desktop/ImageAnalysis/GUI/Img/'
         self.imgList = listdir(self.imgPath)
+        self.imgList.sort()
         self.listLim = len(self.imgList)
         self.imgNumber = 0
 #        self.origin = QPoint()
@@ -49,6 +53,7 @@ class PhotoViewer(QGraphicsView):
         self.changeRubberBand = False
         
     def getExif(self): # TODO: Create a dictionary instead of printing
+        self.updateImgDirectory()
         img = Image.open(self.imgPath + self.imgList[self.imgNumber])
         exifData = img._getexif()
         for tag, value in exifData.items():
@@ -166,12 +171,14 @@ class PhotoViewer(QGraphicsView):
     def keyPressEvent(self, event):
         key = event.key()
         if key == Qt.Key_Right or key == Qt.Key_Down:
+            self.updateImgDirectory()
             self.imgNumber += 1
             if self.listLim <= self.imgNumber:
                 self.imgNumber = self.listLim - 1
             self.nextImage(self.imgNumber)
             self.keyPressed.emit(self.imgNumber)
         elif key == Qt.Key_Left or key == Qt.Key_Up:
+            self.updateImgDirectory()
             self.imgNumber -= 1
             if self.imgNumber <= 0:
                 self.imgNumber = 0
@@ -184,6 +191,11 @@ class PhotoViewer(QGraphicsView):
         nextImg = QPixmap(self.imgPath + self.imgList[self.imgNumber])
         self.setPhoto(nextImg)
 
+    def updateImgDirectory(self):
+        self.imgList = listdir(self.imgPath)
+        self.listLim = len(self.imgList)
+        self.imgList.sort()
+        
 ###############################################################################
 ###############################################################################
 ###############################################################################
@@ -314,7 +326,7 @@ class MainWindow(QMainWindow):
         
         self.widget.setLayout(GUILayout)
         self.setCentralWidget(self.widget)
-
+        
     def pixInfo(self):
         self.viewer.toggleDragMode()
         print(self.viewer.getExif())
@@ -334,7 +346,6 @@ class MainWindow(QMainWindow):
     def loadImage(self):
         self.viewer.setPhoto(QPixmap(self.viewer.imgPath + self.viewer.imgList[self.viewer.imgNumber]))
         
-
 #    def about(self):
 #        QMessageBox.about(self, 
 #            "About Function Evaluator",
@@ -348,5 +359,5 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
     window = MainWindow()
     window.showMaximized()
-    window.show()
+    window.show()    
     app.exec_()
