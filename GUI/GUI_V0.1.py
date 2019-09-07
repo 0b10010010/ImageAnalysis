@@ -16,7 +16,7 @@ from PyQt5.QtWidgets import (QMainWindow, QApplication, QDialog, QLineEdit,
                              QToolButton, QRubberBand, QMessageBox)
 from PyQt5.QtCore import (pyqtSignal, pyqtSlot, QPointF, Qt, QRectF,
                           QRect, QSize, QTimer, QT_VERSION_STR, PYQT_VERSION_STR)
-from PyQt5.QtGui import QBrush, QColor, QPixmap, QKeySequence
+from PyQt5.QtGui import QBrush, QColor, QPixmap, QKeySequence, QIcon
 
 ###############################################################################
 ###############################################################################
@@ -264,6 +264,9 @@ class MainWindow(QMainWindow):
         
         # Add Window Title
         self.setWindowTitle('Team Spycat Image Analysis 0.0')
+        
+        # Add an Icon
+        self.setWindowIcon(QIcon('airport.svg')) # <div>Icons made by <a href="https://www.flaticon.com/authors/smalllikeart" title="smalllikeart">smalllikeart</a> from <a href="https://www.flaticon.com/"         title="Flaticon">www.flaticon.com</a></div>
         
         #######################################################################
         # ADD SHORTCUTS
