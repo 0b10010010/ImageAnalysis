@@ -6,19 +6,17 @@ Created on Sat Jan 19 12:49:01 2019
 @author: Alex Kim, Braedon Smith
 """
 
-import sys, time, threading
+import sys, subprocess, platform
 from os import listdir, path
 from PIL import Image, ExifTags
 from PyQt5.QtWidgets import (QMainWindow, QApplication, QDialog, QLineEdit, 
                              QVBoxLayout, QAction, QSizePolicy, QHBoxLayout,
                              QGridLayout, QShortcut, QGraphicsView, QLabel,
                              QGraphicsScene, QGraphicsPixmapItem, QFrame,
-                             QToolButton, QRubberBand)
-from PyQt5.QtCore import (pyqtSignal, pyqtSlot, QObject, QPointF, Qt, QRectF,
-                          QRect, QSize, QThread, QTimer)
+                             QToolButton, QRubberBand, QMessageBox)
+from PyQt5.QtCore import (pyqtSignal, pyqtSlot, QPointF, Qt, QRectF,
+                          QRect, QSize, QTimer, QT_VERSION_STR, PYQT_VERSION_STR)
 from PyQt5.QtGui import QBrush, QColor, QPixmap, QKeySequence
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
 
 ###############################################################################
 ###############################################################################
@@ -166,6 +164,7 @@ class PhotoViewer(QGraphicsView):
         
         self.cropQPixmap = self._photo.pixmap().copy(topLeftX, topLeftY, cropWidth, cropHeight)                                            
         self.cropQPixmap.save('Obj%d.png' %self.imgNumber)
+        # TODO: save the target images to ProcessedTargets directory
 #        self.rubberBand.deleteLater()
         
     def keyPressEvent(self, event):
@@ -224,11 +223,44 @@ class ReadTelemetryLog():
 ###############################################################################
 ###############################################################################
 ###############################################################################
+class executeLinuxCommand():
+    # read https://gist.github.com/bortzmeyer/1284249
+    def __init__(self):
+        self.host = "odroid@odroid"        
+        # gphoto2 shell commands
+        self.detectCam = 'gphoto2 --auto-detect'
+        self.triggerCam = 'gphoto2 --capture-image-and-download --interval 3'
+        self.result = []
+
+    def detectCamera(self):
+#        self.cmdDetectCam = subprocess.Popen(self.detectCam, stdout=subprocess.PIPE, shell=True)
+        self.cmdDetectCam = subprocess.Popen(["ssh", "%s" % self.host, self.detectCam], shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        self.result = self.cmdDetectCam.stdout.readlines()
+        if self.result == []:
+            error = self.cmdDetectCam.stderr.readlines()
+            print(sys.stderr, "ERROR: %s" % error)
+        else:
+            print(self.result)
+            
+    def triggerCamera(self):
+#        self.cmdTrigCam = subprocess.Popen(self.triggerCam, stdout=subprocess.PIPE, shell=True)
+        self.cmdTrigCam = subprocess.Popen(["ssh", "%s" % self.host, self.triggerCam], shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        self.result = self.cmdTrigCam.stdout.readlines()
+        if self.result == []:
+            error = self.cmdTrigCam.stderr.readlines()
+            print(sys.stderr, "ERROR: %s" % error)
+        else:
+            print(self.result)
+    
+###############################################################################
+###############################################################################
+###############################################################################
 class MainWindow(QMainWindow):
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
         self.viewer = PhotoViewer(self)
         self.readLog = ReadTelemetryLog()
+        self.exeLinuxCmd = executeLinuxCommand()
         
         # Add Window Title
         self.setWindowTitle('Team Spycat Image Analysis 0.0')
@@ -256,7 +288,7 @@ class MainWindow(QMainWindow):
         # Create the Help menu
         self.menuHelp = self.menuBar().addMenu("&Help")
         self.actionAbout = QAction("&About",self)
-#        self.actionAbout.triggered.connect(self.about)
+        self.actionAbout.triggered.connect(self.about)
         self.menuHelp.addActions([self.actionAbout])
 
         #######################################################################
@@ -268,10 +300,24 @@ class MainWindow(QMainWindow):
         #######################################################################
         # LAYOUTS
         #######################################################################
+        
+        # 'Start Triggering Camera' button
+        self.btnDetectCam = QToolButton(self)
+        toolButtonSizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        self.btnDetectCam.setSizePolicy(toolButtonSizePolicy)
+        self.btnDetectCam.setText('Detect Camera')
+        self.btnDetectCam.clicked.connect(self.exeLinuxCmd.detectCamera)
 
+        # 'Start Triggering Camera' button
+        self.btnCamTrig = QToolButton(self)
+        self.btnCamTrig.setSizePolicy(toolButtonSizePolicy)
+        self.btnCamTrig.setText('Start Triggering Camera')
+        self.btnCamTrig.clicked.connect(self.exeLinuxCmd.triggerCamera)
+        
+        # TODO: add more buttons to abort camera trigger or other linux cmds
+        
         # 'Load image' button
         self.btnLoad = QToolButton(self)
-        toolButtonSizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         self.btnLoad.setSizePolicy(toolButtonSizePolicy)
         self.btnLoad.setText('Load Image')
         self.btnLoad.clicked.connect(self.loadImage)
@@ -314,6 +360,8 @@ class MainWindow(QMainWindow):
         
         # Buttons layout
         Btnlayout = QVBoxLayout()
+        Btnlayout.addWidget(self.btnDetectCam)
+        Btnlayout.addWidget(self.btnCamTrig)
         Btnlayout.addWidget(self.btnLoad)
         Btnlayout.addLayout(ImgInfo)
         Btnlayout.addWidget(self.cropImage)
@@ -361,18 +409,22 @@ class MainWindow(QMainWindow):
     def loadImage(self):
         self.viewer.setPhoto(QPixmap(self.viewer.imgPath + self.viewer.imgList[self.viewer.imgNumber]))
         
-#    def about(self):
-#        QMessageBox.about(self, 
-#            "About Function Evaluator",
-#            """<b>Function Evaluator</b>
-#               <p>Copyright &copy; 2016 Jeremy Roberts, All Rights Reserved.
-#               <p>Python %s -- Qt %s -- PyQt %s on %s""" %
-#            (platform.python_version(),
-#             QT_VERSION_STR, PYQT_VERSION_STR, platform.system()))
+    def triggerCam(self):
+        pass
+        
+    def about(self):
+        QMessageBox.about(self, 
+            "About KSU SUAS Image Analysis",
+            """<b>KSU SUAS Image Analysis</b>
+               <p>Copyright &copy; 2019 KSU SUAS, All Rights Reserved.
+               <p>Python %s -- Qt %s -- PyQt %s on %s""" %
+            (platform.python_version(),
+             QT_VERSION_STR, PYQT_VERSION_STR, platform.system()))
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     window = MainWindow()
+    window.resize(800, 500)
     window.showMaximized()
     window.show()   
     window.start()
