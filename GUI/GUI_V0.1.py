@@ -6,7 +6,7 @@ Created on Sat Jan 19 12:49:01 2019
 @author: Alex Kim, Braedon Smith
 """
 
-import sys, subprocess, platform
+import sys, subprocess, platform, getEXIF
 from os import listdir, path
 from PIL import Image, ExifTags
 from PyQt5.QtWidgets import (QMainWindow, QApplication, QDialog, QLineEdit, 
@@ -50,25 +50,24 @@ class PhotoViewer(QGraphicsView):
         self.rubberBand = QRubberBand(QRubberBand.Rectangle, self)
         self.changeRubberBand = False
         
-    def getExif(self): # TODO: Create a dictionary instead of printing
-        self.updateImgDirectory()
-        img = Image.open(self.imgPath + self.imgList[self.imgNumber])
-        exifData = img._getexif()
-        for tag, value in exifData.items():
-            if ExifTags.TAGS.get(tag) == 'Orientation':
-                print('%s = %s' % (ExifTags.TAGS.get(tag), value))
-            elif ExifTags.TAGS.get(tag) == 'DateTime':
-                print('%s = %s' % (ExifTags.TAGS.get(tag), value))
-            elif ExifTags.TAGS.get(tag) == 'FocalLength':
-                print('%s = %s' % (ExifTags.TAGS.get(tag), value))
-            elif ExifTags.TAGS.get(tag) == 'ExifImageWidth':
-                print('%s = %s' % (ExifTags.TAGS.get(tag), value))
-            elif ExifTags.TAGS.get(tag) == 'ExifImageHeight':
-                print('%s = %s' % (ExifTags.TAGS.get(tag), value))
-            elif ExifTags.TAGS.get(tag) == 'ExposureTime':
-                print('%s = %s' % (ExifTags.TAGS.get(tag), value))
-            elif ExifTags.TAGS.get(tag) == 'ISOSpeedRatings':
-                print('%s = %s' % (ExifTags.TAGS.get(tag), value))
+#    def getExif(self): # TODO: Create a dictionary instead of printing
+#        img = Image.open(self.imgPath + self.imgList[self.imgNumber])
+#        exifData = img._getexif()
+#        for tag, value in exifData.items():
+#            if ExifTags.TAGS.get(tag) == 'Orientation':
+#                print('%s = %s' % (ExifTags.TAGS.get(tag), value))
+#            elif ExifTags.TAGS.get(tag) == 'DateTime':
+#                print('%s = %s' % (ExifTags.TAGS.get(tag), value))
+#            elif ExifTags.TAGS.get(tag) == 'FocalLength':
+#                print('%s = %s' % (ExifTags.TAGS.get(tag), value))
+#            elif ExifTags.TAGS.get(tag) == 'ExifImageWidth':
+#                print('%s = %s' % (ExifTags.TAGS.get(tag), value))
+#            elif ExifTags.TAGS.get(tag) == 'ExifImageHeight':
+#                print('%s = %s' % (ExifTags.TAGS.get(tag), value))
+#            elif ExifTags.TAGS.get(tag) == 'ExposureTime':
+#                print('%s = %s' % (ExifTags.TAGS.get(tag), value))
+#            elif ExifTags.TAGS.get(tag) == 'ISOSpeedRatings':
+#                print('%s = %s' % (ExifTags.TAGS.get(tag), value))
     
     def hasPhoto(self):
         return not self._empty
@@ -334,10 +333,10 @@ class MainWindow(QMainWindow):
         self.viewer.keyPressed.connect(self.keyPress)
 
         # Button to change from drag/pan to getting pixel info
-        self.btnPixInfo = QToolButton(self)
-        self.btnPixInfo.setText('Pixel Info. Mode')
-        self.btnPixInfo.setCheckable(True)
-        self.btnPixInfo.clicked.connect(self.pixInfo)
+        self.btnPixInfo = QLabel(self)
+        self.btnPixInfo.setText('Pixel Info')
+#        self.btnPixInfo.setCheckable(True)
+#        self.btnPixInfo.clicked.connect(self.pixInfo)
         self.editPixInfo = QLineEdit(self)
         self.editPixInfo.setReadOnly(True)
         self.editPixInfo.setFixedWidth(100)
@@ -393,20 +392,24 @@ class MainWindow(QMainWindow):
     def updateImgDir(self):
         self.viewer.updateImgDirectory()
         
-    def pixInfo(self):
-        self.viewer.toggleDragMode()
-        print(self.viewer.getExif())
-        print('Frame #: %d' % self.viewer.imgNumber)
-        self.readLog.readAttitude()   
+#    def pixInfo(self):
+#        self.viewer.toggleDragMode()
+#        print(self.viewer.getExif())
+#        print('Frame #: %d' % self.viewer.imgNumber)
+#        self.readLog.readAttitude()   
         
     def keyPress(self, imgNumber):
         self.loadedImgNumber.setText('%d' % imgNumber)
 
     def photoClick(self, pos):
+        self.viewer.toggleDragMode()
         if self.viewer.dragMode()  == QGraphicsView.NoDrag:
             self.editPixInfo.setText('%d, %d' % (pos.x(), pos.y()))
+            self.viewer.toggleDragMode()
             
     def imageCrop(self):
+        getPixel = self.editPixInfo.text().split(',') # pixel location of clicked target
+        getEXIF.getExif(self.viewer.imgPath, self.viewer.imgList, self.viewer.imgNumber, getPixel[0], getPixel[1])
         self.viewer.saveCropEvent()
     
     def loadImage(self):
