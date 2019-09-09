@@ -3,18 +3,18 @@
 """
 Created on Sat Jan 19 12:49:01 2019
 
-@author: Alex Kim, Braedon Smith
+@author: Alex Kim
 """
 
-import sys, subprocess, platform, getEXIF
+import sys, platform, getEXIF, camTrigWorker
 from os import listdir, path
 from PIL import Image, ExifTags
 from PyQt5.QtWidgets import (QMainWindow, QApplication, QDialog, QLineEdit, 
                              QVBoxLayout, QAction, QSizePolicy, QHBoxLayout,
                              QGridLayout, QShortcut, QGraphicsView, QLabel,
                              QGraphicsScene, QGraphicsPixmapItem, QFrame,
-                             QToolButton, QRubberBand, QMessageBox, qApp)
-from PyQt5.QtCore import (pyqtSignal, pyqtSlot, QPointF, Qt, QRectF, QObject,
+                             QToolButton, QRubberBand, QMessageBox)
+from PyQt5.QtCore import (pyqtSignal, pyqtSlot, QPointF, Qt, QRectF, QThread, QObject,
                           QRect, QSize, QTimer, QT_VERSION_STR, PYQT_VERSION_STR)
 from PyQt5.QtGui import QBrush, QColor, QPixmap, QKeySequence, QIcon
 
@@ -49,6 +49,18 @@ class PhotoViewer(QGraphicsView):
 #        self.origin = QPoint()
         self.rubberBand = QRubberBand(QRubberBand.Rectangle, self)
         self.changeRubberBand = False
+        
+        self.obj = camTrigWorker.camTrigWorker()
+        self.obj_thread = QThread()
+        
+        self.obj.respReady.connect(self.onRespReady)
+        self.obj.moveToThread(self.obj_thread)
+        self.obj.finished.connect(self.obj_thread.quit)
+#        self.thread.started.connect(self.obj.sendTrigCmd)
+        self.obj_thread.start()
+
+    def onRespReady(self, result):
+        pass
         
 #    def getExif(self): # TODO: Create a dictionary instead of printing
 #        img = Image.open(self.imgPath + self.imgList[self.imgNumber])
@@ -194,6 +206,10 @@ class PhotoViewer(QGraphicsView):
         self.listLim = len(self.imgList)
         self.imgList.sort()
         
+    def trigLinCmd(self):
+        exe = executeLinuxCommand
+        exe.triggerCam()
+        
 ###############################################################################
 ###############################################################################
 ###############################################################################
@@ -222,49 +238,35 @@ class ReadTelemetryLog():
 ###############################################################################
 ###############################################################################
 ###############################################################################
-class executeLinuxCommand():
-    # read https://gist.github.com/bortzmeyer/1284249
-    def __init__(self):
-        self.host = "odroid@odroid"        
-        # gphoto2 shell commands
-        self.detectCam = 'gphoto2 --auto-detect'
-        self.triggerCam = 'gphoto2 --capture-image-and-download --interval 3'
-        self.result = []
-
-    def detectCamera(self):
-#        self.cmdDetectCam = subprocess.Popen(self.detectCam, stdout=subprocess.PIPE, shell=True)
-        self.cmdDetectCam = subprocess.Popen(["ssh", "%s" % self.host, self.detectCam], shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        self.result = self.cmdDetectCam.stdout.readlines()
-        if self.result == []:
-            error = self.cmdDetectCam.stderr.readlines()
-            print(sys.stderr, "ERROR: %s" % error)
-        else:
-            print(self.result)
-            
-    def triggerCamera(self):
-#        self.cmdTrigCam = subprocess.Popen(self.triggerCam, stdout=subprocess.PIPE, shell=True)
-        self.cmdTrigCam = subprocess.Popen(["ssh", "%s" % self.host, self.triggerCam], shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        self.result = self.cmdTrigCam.stdout.readlines()
-        if self.result == []:
-            error = self.cmdTrigCam.stderr.readlines()
-            print(sys.stderr, "ERROR: %s" % error)
-        else:
-            print(self.result)
-    
-###############################################################################
-###############################################################################
-###############################################################################
-class workerObject(QObject):
-    signalStatus = pyqtSignal(str)
-    
-    def __inti__(self, parent=None):
-        super(self.__class__, self).__init(parent)
-
-    @pyqtSlot()
-    def startWork(self):
-        for ii in range(7):
-            pass
-    
+#class executeLinuxCommand():
+#    # read https://gist.github.com/bortzmeyer/1284249
+#    def __init__(self):
+#        self.host = "odroid@odroid"        
+#        # gphoto2 shell commands
+#        self.detectCam = 'gphoto2 --auto-detect'
+#        self.triggerCam = 'gphoto2 --capture-image-and-download --interval 3'
+#        self.result = []
+#
+#    def detectCamera(self):
+##        self.cmdDetectCam = subprocess.Popen(self.detectCam, stdout=subprocess.PIPE, shell=True)
+#        self.cmdDetectCam = subprocess.Popen(["ssh", "%s" % self.host, self.detectCam], shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+#        self.result = self.cmdDetectCam.stdout.readlines()
+#        if self.result == []:
+#            error = self.cmdDetectCam.stderr.readlines()
+#            print(sys.stderr, "ERROR: %s" % error)
+#        else:
+#            print(self.result)
+#            
+#    def triggerCamera(self):
+##        self.cmdTrigCam = subprocess.Popen(self.triggerCam, stdout=subprocess.PIPE, shell=True)
+#        self.cmdTrigCam = subprocess.Popen(["ssh", "%s" % self.host, self.triggerCam], shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+#        self.result = self.cmdTrigCam.stdout.readlines()
+#        if self.result == []:
+#            error = self.cmdTrigCam.stderr.readlines()
+#            print(sys.stderr, "ERROR: %s" % error)
+#        else:
+#            print(self.result)
+        
 ###############################################################################
 ###############################################################################
 ###############################################################################            
@@ -273,7 +275,6 @@ class MainWindow(QMainWindow):
         super(MainWindow, self).__init__(parent)
         self.viewer = PhotoViewer(self)
         self.readLog = ReadTelemetryLog()
-        self.exeLinuxCmd = executeLinuxCommand()
         
         # Add Window Title
         self.setWindowTitle('Team Spycat Image Analysis 0.0')
@@ -322,7 +323,7 @@ class MainWindow(QMainWindow):
         toolButtonSizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         self.btnDetectCam.setSizePolicy(toolButtonSizePolicy)
         self.btnDetectCam.setText('Detect Camera')
-        self.btnDetectCam.clicked.connect(self.exeLinuxCmd.detectCamera)
+        self.btnDetectCam.clicked.connect(self.viewer.obj.sendDetCmd)
 
         # 'Start Triggering Camera' button
         self.btnCamTrig = QToolButton(self)
@@ -331,8 +332,9 @@ class MainWindow(QMainWindow):
                                       "QToolButton:checked {background-color: green}")
         self.btnCamTrig.setSizePolicy(toolButtonSizePolicy)
         self.btnCamTrig.setText('Start Triggering Camera')
-#        self.btnCamTrig.clicked.connect(self.exeLinuxCmd.triggerCamera)
-        self.btnCamTrig.clicked.connect(self.handleTrigButton)
+        self.btnCamTrig.clicked.connect(self.viewer.obj.sendTrigCmd)
+
+        # TODO: when trigger button gets pressed create folder and put images there
         
         # TODO: add more buttons to abort camera trigger or other linux cmds
         
@@ -409,19 +411,15 @@ class MainWindow(QMainWindow):
     @pyqtSlot()
     def updateImgDir(self):
         self.viewer.updateImgDirectory()
-        
+
+    @pyqtSlot(str)
+    def printStatus(self, status):
+        print(self.viewer.obj.respReady)
 #    def pixInfo(self):
 #        self.viewer.toggleDragMode()
 #        print(self.viewer.getExif())
 #        print('Frame #: %d' % self.viewer.imgNumber)
 #        self.readLog.readAttitude()
-        
-    @pyqtSlot()
-    def handleTrigButton(self):
-        btn = qApp.focusWidget()
-        if btn is not None:
-            text = btn.text()
-            btn.setText('Stop' if text == 'Start Triggering Camera' else 'Start Triggering Camera')
         
     def keyPress(self, imgNumber):
         self.loadedImgNumber.setText('%d' % imgNumber)
