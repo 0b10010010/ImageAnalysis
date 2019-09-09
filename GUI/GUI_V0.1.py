@@ -13,8 +13,8 @@ from PyQt5.QtWidgets import (QMainWindow, QApplication, QDialog, QLineEdit,
                              QVBoxLayout, QAction, QSizePolicy, QHBoxLayout,
                              QGridLayout, QShortcut, QGraphicsView, QLabel,
                              QGraphicsScene, QGraphicsPixmapItem, QFrame,
-                             QToolButton, QRubberBand, QMessageBox)
-from PyQt5.QtCore import (pyqtSignal, pyqtSlot, QPointF, Qt, QRectF,
+                             QToolButton, QRubberBand, QMessageBox, qApp)
+from PyQt5.QtCore import (pyqtSignal, pyqtSlot, QPointF, Qt, QRectF, QObject,
                           QRect, QSize, QTimer, QT_VERSION_STR, PYQT_VERSION_STR)
 from PyQt5.QtGui import QBrush, QColor, QPixmap, QKeySequence, QIcon
 
@@ -254,6 +254,20 @@ class executeLinuxCommand():
 ###############################################################################
 ###############################################################################
 ###############################################################################
+class workerObject(QObject):
+    signalStatus = pyqtSignal(str)
+    
+    def __inti__(self, parent=None):
+        super(self.__class__, self).__init(parent)
+
+    @pyqtSlot()
+    def startWork(self):
+        for ii in range(7):
+            pass
+    
+###############################################################################
+###############################################################################
+###############################################################################            
 class MainWindow(QMainWindow):
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
@@ -312,9 +326,13 @@ class MainWindow(QMainWindow):
 
         # 'Start Triggering Camera' button
         self.btnCamTrig = QToolButton(self)
+        self.btnCamTrig.setCheckable(True)
+        self.btnCamTrig.setStyleSheet("QToolButton {background-color: red}"
+                                      "QToolButton:checked {background-color: green}")
         self.btnCamTrig.setSizePolicy(toolButtonSizePolicy)
         self.btnCamTrig.setText('Start Triggering Camera')
-        self.btnCamTrig.clicked.connect(self.exeLinuxCmd.triggerCamera)
+#        self.btnCamTrig.clicked.connect(self.exeLinuxCmd.triggerCamera)
+        self.btnCamTrig.clicked.connect(self.handleTrigButton)
         
         # TODO: add more buttons to abort camera trigger or other linux cmds
         
@@ -396,7 +414,14 @@ class MainWindow(QMainWindow):
 #        self.viewer.toggleDragMode()
 #        print(self.viewer.getExif())
 #        print('Frame #: %d' % self.viewer.imgNumber)
-#        self.readLog.readAttitude()   
+#        self.readLog.readAttitude()
+        
+    @pyqtSlot()
+    def handleTrigButton(self):
+        btn = qApp.focusWidget()
+        if btn is not None:
+            text = btn.text()
+            btn.setText('Stop' if text == 'Start Triggering Camera' else 'Start Triggering Camera')
         
     def keyPress(self, imgNumber):
         self.loadedImgNumber.setText('%d' % imgNumber)
