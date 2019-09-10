@@ -7,24 +7,37 @@ Created on Fri Sep  6 20:32:48 2019
 """
 
 from PIL import Image, ExifTags
+from numpy import sin, cos, tan, arctan, pi, array, empty
 
 def getExif(imgPath, imgList, imgNumber, pixelX, pixelY): # TODO: Create a dictionary instead of printing
     image = Image.open(imgPath + imgList[imgNumber])
     exifData = image._getexif()
+    orientation = 0
+    imgWidth    = 0
+    imgHeight   = 0
+    focalLen    = 0    # focal length in mm
+    angleOfViewX = 0.0 # AOV along the width of the sensor (Sony A6000)
+    angleOfViewY = 0.0 # AOV along the height of the sensor (Sony A6000)
     for tag, value in exifData.items():
-        if ExifTags.TAGS.get(tag) == 'Orientation':
-            print('%s = %s' % (ExifTags.TAGS.get(tag), value))
+        if ExifTags.TAGS.get(tag)  == 'Orientation':
+            orientation = value
         elif ExifTags.TAGS.get(tag) == 'DateTime':
-            print('%s = %s' % (ExifTags.TAGS.get(tag), value))
+            pass
         elif ExifTags.TAGS.get(tag) == 'FocalLength':
-            print('%s = %s' % (ExifTags.TAGS.get(tag), value))
+            focalLen = value[0]/value[1]
+            angleOfViewX = 2*arctan(23.5/(2*focalLen))*(180/pi)
+            angleOfViewY = 2*arctan(15.6/(2*focalLen))*(180/pi)
         elif ExifTags.TAGS.get(tag) == 'ExifImageWidth':
-            print('%s = %s' % (ExifTags.TAGS.get(tag), value))
+            imgWidth = value
         elif ExifTags.TAGS.get(tag) == 'ExifImageHeight':
-            print('%s = %s' % (ExifTags.TAGS.get(tag), value))
+            imgHeight = value
         elif ExifTags.TAGS.get(tag) == 'ExposureTime':
-            print('%s = %s' % (ExifTags.TAGS.get(tag), value))
+            pass
         elif ExifTags.TAGS.get(tag) == 'ISOSpeedRatings':
-            print('%s = %s' % (ExifTags.TAGS.get(tag), value))
+            pass
+    print(orientation)
     print(pixelX)
     print(pixelY)
+    print(focalLen)
+    print(angleOfViewX, angleOfViewY)
+    print(imgWidth, imgHeight)

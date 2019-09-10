@@ -50,18 +50,19 @@ class PhotoViewer(QGraphicsView):
         self.rubberBand = QRubberBand(QRubberBand.Rectangle, self)
         self.changeRubberBand = False
         
-        self.obj = camTrigWorker.camTrigWorker()
-        self.obj_thread = QThread()
+        # Threading
+        self.sendLinuxCmd = camTrigWorker.camTrigWorker()
+        self.sendLinuxCmd_thread = QThread()
         
-        self.obj.respReady.connect(self.onRespReady)
-        self.obj.moveToThread(self.obj_thread)
-        self.obj.finished.connect(self.obj_thread.quit)
+#        self.obj.respReady.connect(self.onRespReady)
+        self.sendLinuxCmd.moveToThread(self.sendLinuxCmd_thread)
+        self.sendLinuxCmd.finishedTriggering.connect(self.sendLinuxCmd_thread.quit)
+        self.sendLinuxCmd.finishedDetect.connect(self.sendLinuxCmd_thread.quit)
+        self.sendLinuxCmd.finishedCancelTrig.connect(self.sendLinuxCmd_thread.quit)
+        
 #        self.thread.started.connect(self.obj.sendTrigCmd)
-        self.obj_thread.start()
+        self.sendLinuxCmd_thread.start()
 
-    def onRespReady(self, result):
-        pass
-        
 #    def getExif(self): # TODO: Create a dictionary instead of printing
 #        img = Image.open(self.imgPath + self.imgList[self.imgNumber])
 #        exifData = img._getexif()
@@ -206,9 +207,9 @@ class PhotoViewer(QGraphicsView):
         self.listLim = len(self.imgList)
         self.imgList.sort()
         
-    def trigLinCmd(self):
-        exe = executeLinuxCommand
-        exe.triggerCam()
+#    def trigLinCmd(self):
+#        exe = executeLinuxCommand
+#        exe.triggerCam()
         
 ###############################################################################
 ###############################################################################
@@ -323,7 +324,7 @@ class MainWindow(QMainWindow):
         toolButtonSizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         self.btnDetectCam.setSizePolicy(toolButtonSizePolicy)
         self.btnDetectCam.setText('Detect Camera')
-        self.btnDetectCam.clicked.connect(self.viewer.obj.sendDetCmd)
+        self.btnDetectCam.clicked.connect(self.viewer.sendLinuxCmd.sendDetCmd)
 
         # 'Start Triggering Camera' button
         self.btnCamTrig = QToolButton(self)
@@ -332,7 +333,7 @@ class MainWindow(QMainWindow):
                                       "QToolButton:checked {background-color: green}")
         self.btnCamTrig.setSizePolicy(toolButtonSizePolicy)
         self.btnCamTrig.setText('Start Triggering Camera')
-        self.btnCamTrig.clicked.connect(self.viewer.obj.sendTrigCmd)
+        self.btnCamTrig.clicked.connect(self.btnCamTrigHandler)
 
         # TODO: when trigger button gets pressed create folder and put images there
         
@@ -411,10 +412,20 @@ class MainWindow(QMainWindow):
     @pyqtSlot()
     def updateImgDir(self):
         self.viewer.updateImgDirectory()
+    
+    @pyqtSlot()
+    def btnCamTrigHandler(self):
+        if self.btnCamTrig.isChecked():
+            self.viewer.sendLinuxCmd.sendTrigCmd()
+            self.btnCamTrig.setText('Cancel Triggering Camera')
+        else:
+            self.viewer.sendLinuxCmd.cancelTrigCmd()
+            self.btnCamTrig.setText('Start Triggering Camera')  
 
     @pyqtSlot(str)
     def printStatus(self, status):
-        print(self.viewer.obj.respReady)
+        print(self.viewer.sendLinuxCmd.respReady)
+
 #    def pixInfo(self):
 #        self.viewer.toggleDragMode()
 #        print(self.viewer.getExif())
@@ -431,7 +442,7 @@ class MainWindow(QMainWindow):
             self.viewer.toggleDragMode()
             
     def imageCrop(self):
-        getPixel = self.editPixInfo.text().split(',') # pixel location of clicked target
+        getPixel = self.editPixInfo.text().split(', ') # pixel location of clicked target
         getEXIF.getExif(self.viewer.imgPath, self.viewer.imgList, self.viewer.imgNumber, getPixel[0], getPixel[1])
         self.viewer.saveCropEvent()
     
