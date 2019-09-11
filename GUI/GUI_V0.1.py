@@ -41,6 +41,7 @@ class PhotoViewer(QGraphicsView):
         self.setBackgroundBrush(QBrush(QColor(30, 30, 30)))
         self.setFrameShape(QFrame.NoFrame)
         self.imgPath = path.dirname(path.realpath(__file__)) + '/CamFeedbackTest/img/' # TODO: set to correct path
+        
 #        self.path = '/home/spycat/Desktop/ImageAnalysis/GUI/Img/'
         self.imgList = listdir(self.imgPath)
         self.imgList.sort()
@@ -59,28 +60,9 @@ class PhotoViewer(QGraphicsView):
         self.sendLinuxCmd.finishedTriggering.connect(self.sendLinuxCmd_thread.quit)
         self.sendLinuxCmd.finishedDetect.connect(self.sendLinuxCmd_thread.quit)
         self.sendLinuxCmd.finishedCancelTrig.connect(self.sendLinuxCmd_thread.quit)
-        
+
 #        self.thread.started.connect(self.obj.sendTrigCmd)
         self.sendLinuxCmd_thread.start()
-
-#    def getExif(self): # TODO: Create a dictionary instead of printing
-#        img = Image.open(self.imgPath + self.imgList[self.imgNumber])
-#        exifData = img._getexif()
-#        for tag, value in exifData.items():
-#            if ExifTags.TAGS.get(tag) == 'Orientation':
-#                print('%s = %s' % (ExifTags.TAGS.get(tag), value))
-#            elif ExifTags.TAGS.get(tag) == 'DateTime':
-#                print('%s = %s' % (ExifTags.TAGS.get(tag), value))
-#            elif ExifTags.TAGS.get(tag) == 'FocalLength':
-#                print('%s = %s' % (ExifTags.TAGS.get(tag), value))
-#            elif ExifTags.TAGS.get(tag) == 'ExifImageWidth':
-#                print('%s = %s' % (ExifTags.TAGS.get(tag), value))
-#            elif ExifTags.TAGS.get(tag) == 'ExifImageHeight':
-#                print('%s = %s' % (ExifTags.TAGS.get(tag), value))
-#            elif ExifTags.TAGS.get(tag) == 'ExposureTime':
-#                print('%s = %s' % (ExifTags.TAGS.get(tag), value))
-#            elif ExifTags.TAGS.get(tag) == 'ISOSpeedRatings':
-#                print('%s = %s' % (ExifTags.TAGS.get(tag), value))
     
     def hasPhoto(self):
         return not self._empty
