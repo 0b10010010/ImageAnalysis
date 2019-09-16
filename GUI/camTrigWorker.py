@@ -18,7 +18,7 @@ class camTrigWorker(QObject):
     respReady = pyqtSignal('PyQt_PyObject')
     
     host = 'odroid@odroid'
-    mkdir = 'mkdir Capture#%d; cd Capture#%d'
+    mkdir = 'cd ~/Desktop/Capture#%d;'
     mkdirNum = 1
 
     # gphoto2 shell commands
@@ -32,18 +32,18 @@ class camTrigWorker(QObject):
     
     @pyqtSlot()
     def sendMkdirCmd(self):
-        self.cmdMkdir = subprocess.Popen(["ssh", "%s" % self.host, (self.mkdir%(self.mkdirNum, self.mkdirNum)+self.triggerCam)], shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        self.cmdMkdir = subprocess.Popen(["ssh", "%s" % self.host, (self.mkdir%self.mkdirNum + self.triggerCam)], shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 #        (self.result, self.err) = self.process.communicate(bytes(self.triggerCam, 'utf-8'))
         self.mkdirNum += 1
         self.result = self.cmdMkdir.stdout.readlines()
 #        (self.result, self.err) = self.cmdMkdir.communicate()
-        self.respReady.emit((self.result))
+#        self.respReady.emit((self.result))
         
-#            if self.result == []:
-#                error = self.cmdMkdir.stderr.readlines()
-#                print(sys.stderr, "ERROR: %s" % error)
-#            else:
-#                print(self.result)
+        if self.result == []:
+            error = self.cmdMkdir.stderr.readlines()
+            print(sys.stderr, "ERROR: %s" % error)
+        else:
+            print(self.result)
 #        print(self.result)
     
     @pyqtSlot()
@@ -71,9 +71,12 @@ class camTrigWorker(QObject):
     
     @pyqtSlot()
     def cancelTrigCmd(self):
-        self.cmdMkdir.send_signal(self.cancelTrig)
-        self.finishedTriggering.emit()
+        os.kill(self.cmdMkdir.pid, signal.SIGTERM)
+#        self.cmdMkdir.send_signal(self.cancelTrig)
+#        self.finishedTriggering.emit()
+        
 #        subprocess.Popen(["ssh", "%s" % self.host, self.cancelTrig], shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        
 #        self.cmdMkdir.send_signal(self.cancelTrig)
 #        self.finishedCancelTrig.emit()
 #        self.process.communicate((self.cancelTrig))

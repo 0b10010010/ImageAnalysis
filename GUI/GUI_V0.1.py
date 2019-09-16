@@ -40,7 +40,8 @@ class PhotoViewer(QGraphicsView):
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setBackgroundBrush(QBrush(QColor(30, 30, 30)))
         self.setFrameShape(QFrame.NoFrame)
-        self.imgPath = path.dirname(path.realpath(__file__)) + '/CamFeedbackTest/img/' # TODO: set to correct path
+#        self.imgPath = path.dirname(path.realpath(__file__)) + '/CamFeedbackTest/img/' # TODO: set to correct path
+        self.imgPath = '/home/spycat/Desktop/Capture#1/'
         
 #        self.path = '/home/spycat/Desktop/ImageAnalysis/GUI/Img/'
         self.imgList = listdir(self.imgPath)
@@ -51,20 +52,7 @@ class PhotoViewer(QGraphicsView):
         self.rubberBand = QRubberBand(QRubberBand.Rectangle, self)
         self.changeRubberBand = False
         
-<<<<<<< HEAD
-        # Threading
-        self.sendLinuxCmd = camTrigWorker.camTrigWorker()
-        self.sendLinuxCmd_thread = QThread()
-        
-#        self.obj.respReady.connect(self.onRespReady)
-        self.sendLinuxCmd.moveToThread(self.sendLinuxCmd_thread)
-        self.sendLinuxCmd.finishedTriggering.connect(self.sendLinuxCmd_thread.quit)
-        self.sendLinuxCmd.finishedDetect.connect(self.sendLinuxCmd_thread.quit)
-        self.sendLinuxCmd.finishedCancelTrig.connect(self.sendLinuxCmd_thread.quit)
-
-#        self.thread.started.connect(self.obj.sendTrigCmd)
-        self.sendLinuxCmd_thread.start()
-=======
+#<<<<<<< HEAD
 #        # Threading
 #        self.sendLinuxCmd = camTrigWorker.camTrigWorker()
 #        self.sendLinuxCmd_thread = QThread()
@@ -74,29 +62,42 @@ class PhotoViewer(QGraphicsView):
 #        self.sendLinuxCmd.finishedTriggering.connect(self.sendLinuxCmd_thread.quit)
 #        self.sendLinuxCmd.finishedDetect.connect(self.sendLinuxCmd_thread.quit)
 #        self.sendLinuxCmd.finishedCancelTrig.connect(self.sendLinuxCmd_thread.quit)
-#        
-#        self.sendLinuxCmd_thread.started.connect(self.sendLinuxCmd.)
+#
+##        self.thread.started.connect(self.obj.sendTrigCmd)
 #        self.sendLinuxCmd_thread.start()
-
-#    def getExif(self): # TODO: Create a dictionary instead of printing
-#        img = Image.open(self.imgPath + self.imgList[self.imgNumber])
-#        exifData = img._getexif()
-#        for tag, value in exifData.items():
-#            if ExifTags.TAGS.get(tag) == 'Orientation':
-#                print('%s = %s' % (ExifTags.TAGS.get(tag), value))
-#            elif ExifTags.TAGS.get(tag) == 'DateTime':
-#                print('%s = %s' % (ExifTags.TAGS.get(tag), value))
-#            elif ExifTags.TAGS.get(tag) == 'FocalLength':
-#                print('%s = %s' % (ExifTags.TAGS.get(tag), value))
-#            elif ExifTags.TAGS.get(tag) == 'ExifImageWidth':
-#                print('%s = %s' % (ExifTags.TAGS.get(tag), value))
-#            elif ExifTags.TAGS.get(tag) == 'ExifImageHeight':
-#                print('%s = %s' % (ExifTags.TAGS.get(tag), value))
-#            elif ExifTags.TAGS.get(tag) == 'ExposureTime':
-#                print('%s = %s' % (ExifTags.TAGS.get(tag), value))
-#            elif ExifTags.TAGS.get(tag) == 'ISOSpeedRatings':
-#                print('%s = %s' % (ExifTags.TAGS.get(tag), value))
->>>>>>> 45485dcbd4fdd05ec5b962a4566d8cb3db414a39
+#=======
+##        # Threading
+##        self.sendLinuxCmd = camTrigWorker.camTrigWorker()
+##        self.sendLinuxCmd_thread = QThread()
+##        
+###        self.obj.respReady.connect(self.onRespReady)
+##        self.sendLinuxCmd.moveToThread(self.sendLinuxCmd_thread)
+##        self.sendLinuxCmd.finishedTriggering.connect(self.sendLinuxCmd_thread.quit)
+##        self.sendLinuxCmd.finishedDetect.connect(self.sendLinuxCmd_thread.quit)
+##        self.sendLinuxCmd.finishedCancelTrig.connect(self.sendLinuxCmd_thread.quit)
+##        
+##        self.sendLinuxCmd_thread.started.connect(self.sendLinuxCmd.)
+##        self.sendLinuxCmd_thread.start()
+#
+##    def getExif(self): # TODO: Create a dictionary instead of printing
+##        img = Image.open(self.imgPath + self.imgList[self.imgNumber])
+##        exifData = img._getexif()
+##        for tag, value in exifData.items():
+##            if ExifTags.TAGS.get(tag) == 'Orientation':
+##                print('%s = %s' % (ExifTags.TAGS.get(tag), value))
+##            elif ExifTags.TAGS.get(tag) == 'DateTime':
+##                print('%s = %s' % (ExifTags.TAGS.get(tag), value))
+##            elif ExifTags.TAGS.get(tag) == 'FocalLength':
+##                print('%s = %s' % (ExifTags.TAGS.get(tag), value))
+##            elif ExifTags.TAGS.get(tag) == 'ExifImageWidth':
+##                print('%s = %s' % (ExifTags.TAGS.get(tag), value))
+##            elif ExifTags.TAGS.get(tag) == 'ExifImageHeight':
+##                print('%s = %s' % (ExifTags.TAGS.get(tag), value))
+##            elif ExifTags.TAGS.get(tag) == 'ExposureTime':
+##                print('%s = %s' % (ExifTags.TAGS.get(tag), value))
+##            elif ExifTags.TAGS.get(tag) == 'ISOSpeedRatings':
+##                print('%s = %s' % (ExifTags.TAGS.get(tag), value))
+#>>>>>>> 45485dcbd4fdd05ec5b962a4566d8cb3db414a39
     
     def hasPhoto(self):
         return not self._empty
@@ -191,21 +192,19 @@ class PhotoViewer(QGraphicsView):
         cropHeight = abs(self.currentQRectTopLeft.y() - self.currentQRectBotRight.y())
         
         self.cropQPixmap = self._photo.pixmap().copy(topLeftX, topLeftY, cropWidth, cropHeight)                                            
-        self.cropQPixmap.save('Obj%d.png' %self.imgNumber)
+        self.cropQPixmap.save('/home/spycat/Desktop/image-analysis/ProcessedTargets/Obj%d.png' %self.imgNumber)
         # TODO: save the target images to ProcessedTargets directory
 #        self.rubberBand.deleteLater()
         
     def keyPressEvent(self, event):
         key = event.key()
         if key == Qt.Key_Right or key == Qt.Key_Down:
-#            self.updateImgDirectory()
             self.imgNumber += 1
             if self.listLim <= self.imgNumber:
                 self.imgNumber = self.listLim - 1
             self.nextImage(self.imgNumber)
             self.keyPressed.emit(self.imgNumber)
         elif key == Qt.Key_Left or key == Qt.Key_Up:
-#            self.updateImgDirectory()
             self.imgNumber -= 1
             if self.imgNumber <= 0:
                 self.imgNumber = 0
@@ -222,10 +221,6 @@ class PhotoViewer(QGraphicsView):
         self.imgList = listdir(self.imgPath)
         self.listLim = len(self.imgList)
         self.imgList.sort()
-        
-#    def trigLinCmd(self):
-#        exe = executeLinuxCommand
-#        exe.triggerCam()
         
 ###############################################################################
 ###############################################################################
@@ -284,62 +279,62 @@ class ReadTelemetryLog():
 #        else:
 #            print(self.result)
 
-class CameraTriggerCommandThread(QThread):
-    finishedTriggering = pyqtSignal()
-    finishedDetect = pyqtSignal()
-    finishedCancelTrig = pyqtSignal()
-    respReady = pyqtSignal('PyQt_PyObject')
-
-    def __init__(self):
-        QThread.__init__(self)
-        self.host = 'odroid@odroid'
-        self.mkdir = 'mkdir Capture#%d; cd Capture#%d; '
-        self.mkdirNum = 1
-    
-        # gphoto2 shell commands
-        self.detectCam = 'gphoto2 --auto-detect'
-        self.triggerCam = 'gphoto2 --capture-image-and-download --interval 3'
-#        self.cancelTrig = self.signal.SIGINT
-        self.result = []
-    
-    def sendMkdirCmd(self):
-        self.cmdMkdir = subprocess.Popen(["ssh", "%s" % self.host, (self.mkdir%(self.mkdirNum, self.mkdirNum)+self.triggerCam)], shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        self.mkdirNum += 1
-#        self.result = self.cmdMkdir.stdout.readlines()
-        (self.result, self.err) = self.cmdMkdir.communicate()
-        self.respReady.emit(self.result)
-    
-    def run(self):  
-        self.sendMkdirCmd()
+#class CameraTriggerCommandThread(QThread):
+#    finishedTriggering = pyqtSignal()
+#    finishedDetect = pyqtSignal()
+#    finishedCancelTrig = pyqtSignal()
+#    respReady = pyqtSignal('PyQt_PyObject')
+#
+#    def __init__(self):
+#        QThread.__init__(self)
+#        self.host = 'odroid@odroid'
+#        self.mkdir = 'mkdir Capture#%d; cd Capture#%d; '
+#        self.mkdirNum = 1
+#    
+#        # gphoto2 shell commands
+#        self.detectCam = 'gphoto2 --auto-detect'
+#        self.triggerCam = 'gphoto2 --capture-image-and-download --interval 3'
+##        self.cancelTrig = self.signal.SIGINT
+#        self.result = []
+#    
+#    def sendMkdirCmd(self):
+#        self.cmdMkdir = subprocess.Popen(["ssh", "%s" % self.host, (self.mkdir%(self.mkdirNum, self.mkdirNum)+self.triggerCam)], shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+#        self.mkdirNum += 1
+##        self.result = self.cmdMkdir.stdout.readlines()
+#        (self.result, self.err) = self.cmdMkdir.communicate()
+#        self.respReady.emit(self.result)
+#    
+#    def run(self):  
+#        self.sendMkdirCmd()
         
-class CancelCameraTriggerCommandThread(QThread):
-    finishedTriggering = pyqtSignal()
-    finishedDetect = pyqtSignal()
-    finishedCancelTrig = pyqtSignal()
-    respReady = pyqtSignal('PyQt_PyObject')
-
-    def __init__(self):
-        QThread.__init__(self)
-        self.host = 'odroid@odroid'
-        self.mkdir = 'mkdir Capture#%d; cd Capture#%d; '
-        self.mkdirNum = 1
-        self.cdDir = 'cd Capture#1; '
-    
-        # gphoto2 shell commands
-        self.detectCam = 'gphoto2 --auto-detect'
-        self.triggerCam = 'gphoto2 --capture-image-and-download --interval 3'
-        self.stopTrig = 'gphoto2 --reset-interval'
-#        self.cancelTrig = self.signal.SIGINT
-        self.result = []
-#        self.dirNum = CameraTriggerCommandThread.mkdirNum
-    
-    def sendStopTrigCmd(self):
-        self.cmdMkdir = subprocess.Popen(["ssh", "%s" % self.host,self.cdDir + self.stopTrig], shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-#        self.result = self.cmdMkdir.stdout.readlines()
-    
-    def run(self):  
-        self.sendStopTrigCmd()
+#class CancelCameraTriggerCommandThread(QThread):
+#    finishedTriggering = pyqtSignal()
+#    finishedDetect = pyqtSignal()
+#    finishedCancelTrig = pyqtSignal()
+#    respReady = pyqtSignal('PyQt_PyObject')
+#
+#    def __init__(self):
+#        QThread.__init__(self)
+#        self.host = 'odroid@odroid'
+#        self.mkdir = 'mkdir Capture#%d; cd Capture#%d; '
+#        self.mkdirNum = 1
+#        self.cdDir = 'cd Capture#1; '
+#    
+#        # gphoto2 shell commands
+#        self.detectCam = 'gphoto2 --auto-detect'
+#        self.triggerCam = 'gphoto2 --capture-image-and-download --interval 3'
+#        self.stopTrig = 'gphoto2 --reset-interval'
+##        self.cancelTrig = self.signal.SIGINT
+#        self.result = []
+##        self.dirNum = CameraTriggerCommandThread.mkdirNum
+#    
+#    def sendStopTrigCmd(self):
+#        self.cmdMkdir = subprocess.Popen(["ssh", "%s" % self.host,self.cdDir + self.stopTrig], shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+#
+##        self.result = self.cmdMkdir.stdout.readlines()
+#    
+#    def run(self):  
+#        self.sendStopTrigCmd()
 
 ###############################################################################
 ###############################################################################
@@ -397,7 +392,7 @@ class MainWindow(QMainWindow):
         toolButtonSizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         self.btnDetectCam.setSizePolicy(toolButtonSizePolicy)
         self.btnDetectCam.setText('Detect Camera')
-        self.btnDetectCam.clicked.connect(camTrigWorker.camTrigWorker.sendDetCmd)
+        self.btnDetectCam.clicked.connect(self.sendDetectCameraCommand)
 
         # 'Start Triggering Camera' button
         self.btnCamTrig = QToolButton(self)
@@ -483,15 +478,18 @@ class MainWindow(QMainWindow):
 #        self.sendLinuxCmdThread2 = CancelCameraTriggerCommandThread()
 
         self.sendLinuxCmd = camTrigWorker.camTrigWorker()
-#        self.sendLinuxCmd2 = camTrigWorker.camTrigWorker()
+        self.sendLinuxCmd2 = camTrigWorker.camTrigWorker()
         self.sendLinuxCmd_thread_startCamTrig = QThread()
+        self.sendLinuxCmd_thread_detectCam = QThread()
 #        self.sendLinuxCmd_thread_cancelCamTrig = QThread()
         self.sendLinuxCmd.respReady.connect(self.printStatus)
         self.sendLinuxCmd.moveToThread(self.sendLinuxCmd_thread_startCamTrig)
+        self.sendLinuxCmd2.moveToThread(self.sendLinuxCmd_thread_detectCam)
 #        self.sendLinuxCmd2.moveToThread(self.sendLinuxCmd_thread_cancelCamTrig)
         
 #        self.sendLinuxCmd2.finishedCancelTrig.connect(self.sendLinuxCmd_thread_cancelCamTrig.quit)
         self.sendLinuxCmd_thread_startCamTrig.started.connect(self.sendLinuxCmd.sendMkdirCmd)
+        self.sendLinuxCmd_thread_detectCam.started.connect(self.sendLinuxCmd2.sendDetCmd)
 #        self.sendLinuxCmd_thread_cancelCamTrig.started.connect(self.sendLinuxCmd2.cancelTrigCmd)
     
     def start(self):
@@ -503,6 +501,10 @@ class MainWindow(QMainWindow):
     @pyqtSlot()
     def updateImgDir(self):
         self.viewer.updateImgDirectory()
+        
+    @pyqtSlot()
+    def sendDetectCameraCommand(self):
+        self.sendLinuxCmd_thread_detectCam.start()
     
     @pyqtSlot()
     def btnCamTrigHandler(self):
@@ -514,7 +516,7 @@ class MainWindow(QMainWindow):
             self.sendLinuxCmd_thread_startCamTrig.start()
         else:
             self.btnCamTrig.setText('Start Triggering Camera')
-            self.sendLinuxCmd.cancelTrigCmd
+            self.sendLinuxCmd.cancelTrigCmd()
 #            self.sendLinuxCmd_thread_startCamTrig.quit()
 #            self.sendLinuxCmdThread.quit()
 #            self.sendLinuxCmdThread2.start()
