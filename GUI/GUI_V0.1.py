@@ -6,7 +6,7 @@ Created on Sat Jan 19 12:49:01 2019
 @author: Alex Kim
 """
 
-import sys, platform, getEXIF, camTrigWorker, subprocess
+import sys, platform, getEXIF, CamTrigWorker, subprocess
 from os import listdir, path
 from PIL import Image, ExifTags
 from PyQt5.QtWidgets import (QMainWindow, QApplication, QDialog, QLineEdit, 
@@ -477,8 +477,8 @@ class MainWindow(QMainWindow):
 #        
 #        self.sendLinuxCmdThread2 = CancelCameraTriggerCommandThread()
 
-        self.sendLinuxCmd = camTrigWorker.camTrigWorker()
-        self.sendLinuxCmd2 = camTrigWorker.camTrigWorker()
+        self.sendLinuxCmd = CamTrigWorker.camTrigWorker()
+        self.sendLinuxCmd2 = CamTrigWorker.camTrigWorker()
         self.sendLinuxCmd_thread_startCamTrig = QThread()
         self.sendLinuxCmd_thread_detectCam = QThread()
 #        self.sendLinuxCmd_thread_cancelCamTrig = QThread()

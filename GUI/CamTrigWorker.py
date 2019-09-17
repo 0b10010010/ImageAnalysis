@@ -9,7 +9,7 @@ Created on Mon Sep  9 17:08:01 2019
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 import sys, subprocess, signal, os
 
-class camTrigWorker(QObject):
+class CamTrigWorker(QObject):
     path = os.getcwd()
     
     finishedTriggering = pyqtSignal()
