@@ -17,7 +17,7 @@ from PyQt5.QtWidgets import (QMainWindow, QApplication, QDialog, QLineEdit,
 from PyQt5.QtCore import (pyqtSignal, pyqtSlot, QPointF, Qt, QRectF, QThread, QPoint,
                           QRect, QSize, QTimer, QT_VERSION_STR, PYQT_VERSION_STR)
 from PyQt5.QtGui import QBrush, QColor, QPixmap, QKeySequence, QIcon
-
+# TODO: using EXIF orientation number rotate the target image
 ###############################################################################
 ###############################################################################
 ###############################################################################
