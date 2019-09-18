@@ -6,15 +6,15 @@ Created on Sat Jan 19 12:49:01 2019
 @author: Alex Kim
 """
 
-import sys, platform, getEXIF, CamTrigWorker, subprocess
+import sys, platform, getEXIF, CamTrigWorker
 from os import listdir, path
 from PIL import Image, ExifTags
 from PyQt5.QtWidgets import (QMainWindow, QApplication, QDialog, QLineEdit, 
                              QVBoxLayout, QAction, QSizePolicy, QHBoxLayout,
                              QGridLayout, QShortcut, QGraphicsView, QLabel,
                              QGraphicsScene, QGraphicsPixmapItem, QFrame,
-                             QToolButton, QRubberBand, QMessageBox)
-from PyQt5.QtCore import (pyqtSignal, pyqtSlot, QPointF, Qt, QRectF, QThread, QObject,
+                             QToolButton, QRubberBand, QMessageBox, QSpacerItem)
+from PyQt5.QtCore import (pyqtSignal, pyqtSlot, QPointF, Qt, QRectF, QThread, QPoint,
                           QRect, QSize, QTimer, QT_VERSION_STR, PYQT_VERSION_STR)
 from PyQt5.QtGui import QBrush, QColor, QPixmap, QKeySequence, QIcon
 
@@ -25,6 +25,7 @@ class PhotoViewer(QGraphicsView):
     photoClicked = pyqtSignal(QPointF)
     keyPressed   = pyqtSignal(int)
     rectChanged  = pyqtSignal(QRect)
+    imgReady     = pyqtSignal(QPixmap)
     
     def __init__(self, parent):
         super(PhotoViewer, self).__init__(parent)
@@ -38,17 +39,15 @@ class PhotoViewer(QGraphicsView):
         self.setResizeAnchor(QGraphicsView.AnchorUnderMouse)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.setBackgroundBrush(QBrush(QColor(30, 30, 30)))
+        self.setBackgroundBrush(QBrush(QColor(209,209,209)))
         self.setFrameShape(QFrame.NoFrame)
-#        self.imgPath = path.dirname(path.realpath(__file__)) + '/CamFeedbackTest/img/' # TODO: set to correct path
-        self.imgPath = '/home/spycat/Desktop/Capture#1/'
-        
-#        self.path = '/home/spycat/Desktop/ImageAnalysis/GUI/Img/'
+        self.imgPath = path.dirname(path.realpath(__file__)) + '/CamFeedbackTest/img/'
+#        self.imgPath = '/home/spycat/Desktop/Capture#1/' # This is the shared dir between onboard computer and GCS
         self.imgList = listdir(self.imgPath)
         self.imgList.sort()
         self.listLim = len(self.imgList)
         self.imgNumber = 0
-#        self.origin = QPoint()
+        self.origin = QPoint()
         self.rubberBand = QRubberBand(QRubberBand.Rectangle, self)
         self.changeRubberBand = False
         
@@ -153,7 +152,6 @@ class PhotoViewer(QGraphicsView):
         if self.hasPhoto():
             if event.button() == Qt.LeftButton:
                 self.photoClicked.emit(self.mapToScene(event.pos()))
-    #            super(PhotoViewer, self).mousePressEvent(event) 
             elif event.button() == Qt.RightButton:
                 self.changeRubberBand = True
                 self.origin = event.pos()
@@ -190,11 +188,13 @@ class PhotoViewer(QGraphicsView):
         topLeftY   = min(self.currentQRectTopLeft.y(), self.currentQRectBotRight.y())
         cropWidth  = abs(self.currentQRectTopLeft.x() - self.currentQRectBotRight.x())
         cropHeight = abs(self.currentQRectTopLeft.y() - self.currentQRectBotRight.y())
-        
-        self.cropQPixmap = self._photo.pixmap().copy(topLeftX, topLeftY, cropWidth, cropHeight)                                            
-        self.cropQPixmap.save('/home/spycat/Desktop/image-analysis/ProcessedTargets/Obj%d.png' %self.imgNumber)
-        # TODO: save the target images to ProcessedTargets directory
 #        self.rubberBand.deleteLater()
+        self.cropQPixmap = self._photo.pixmap().copy(topLeftX, topLeftY, cropWidth, cropHeight)
+        
+#        self.cropQPixmap.save('/home/spycat/Desktop/image-analysis/ProcessedTargets/Obj%d.png' %self.imgNumber)
+        self.cropQPixmap.save('Obj%d.jpg' %self.imgNumber)
+        self.imgReady.emit(self.cropQPixmap) # emit signal that cropped img is ready
+        # TODO: save the target images to ProcessedTargets directory
         
     def keyPressEvent(self, event):
         key = event.key()
@@ -364,11 +364,8 @@ class MainWindow(QMainWindow):
         
         # Create the File menu
         self.menuFile = self.menuBar().addMenu("&File")
-#        self.actionSaveAs = QAction("&Save As", self)
-#        self.actionSaveAs.triggered.connect(self.saveas)
         self.actionQuit = QAction("&Quit", self)
         self.actionQuit.triggered.connect(self.close)
-#        self.menuFile.addActions([self.actionSaveAs, self.actionQuit])
         self.menuFile.addActions([self.actionQuit])
         
         # Create the Help menu
@@ -413,7 +410,8 @@ class MainWindow(QMainWindow):
         self.btnLoad.setText('Load Image')
         self.btnLoad.clicked.connect(self.loadImage)
         
-        self.loadedImg = QLabel('Frame #:')
+        self.loadedImg = QLabel('<b>Frame #:</b>')
+        self.loadedImg.setStyleSheet("QLabel { color: rgb(255,255,255)}")                                
         self.loadedImg.setFixedWidth(100)
         self.loadedImgNumber = QLineEdit(self)
         self.loadedImgNumber.setReadOnly(True)
@@ -423,7 +421,8 @@ class MainWindow(QMainWindow):
 
         # Button to change from drag/pan to getting pixel info
         self.btnPixInfo = QLabel(self)
-        self.btnPixInfo.setText('Pixel Info')
+        self.btnPixInfo.setText('<b>Pixel Info:</b>')
+        self.btnPixInfo.setStyleSheet("QLabel { color: rgb(255,255,255)}") 
 #        self.btnPixInfo.setCheckable(True)
 #        self.btnPixInfo.clicked.connect(self.pixInfo)
         self.editPixInfo = QLineEdit(self)
@@ -431,12 +430,57 @@ class MainWindow(QMainWindow):
         self.editPixInfo.setFixedWidth(100)
         self.viewer.photoClicked.connect(self.photoClick)
         
+        # For users to input characteristics of targets (letter, shape, color)
+        self.userInput = QLabel(self)
+        self.userInput.setText('<b>Letter:</b>')
+        self.userInput.setStyleSheet("QLabel { color: rgb(255,255,255) }")
+        self.editUserInput = QLineEdit(self)
+        self.editUserInput.setFixedWidth(100)
+        self.userInputShape = QLabel(self)
+        self.userInputShape.setText('<b>Shape:</b>')
+        self.userInputShape.setStyleSheet("QLabel { color: rgb(255,255,255) }") 
+        self.editUserInputShape = QLineEdit(self)
+        self.editUserInputShape.setFixedWidth(100)
+        self.userInputColor = QLabel(self)
+        self.userInputColor.setText('<b>Color:</b>')
+        self.userInputColor.setStyleSheet("QLabel { color: rgb(255,255,255) }")
+        self.editUserInputColor = QLineEdit(self)
+        self.editUserInputColor.setFixedWidth(100)
+        
         # For image processing
         self.cropImage = QToolButton(self)
         self.cropImage.setSizePolicy(toolButtonSizePolicy)
         self.cropImage.setText('Crop and Process')
         self.cropImage.clicked.connect(self.imageCrop)
 #        self.cropImage.clicked.connect(self.readLog.transform)
+        
+        # Display the last processed target image
+        self.processedTargetLabel = QLabel(self)
+        self.processedTargetLabel.setFrameShape(QFrame.Panel)
+        self.processedTargetLabel.setFrameShadow(QFrame.Sunken)
+        self.processedTargetLabel.setText('<b>Last Processed Target</b>')
+        self.processedTargetLabel.setStyleSheet("QLabel { color: rgb(255,255,255) }")
+        self.processedTargetLabel.setStyleSheet("QLabel { background-color: rgb(167,167,167) }")
+        self.processedTargetLabel.setAlignment(Qt.AlignCenter)
+        self.processedTarget = QLabel(self)
+        self.processedTarget.resize(200, 200)
+        self.processedTarget.setStyleSheet("QLabel { background-color : rgb(209,209,209) }")
+        self.viewer.imgReady.connect(self.showProcessedTarget)
+        
+        # Draw a line between the label and image
+        spacerLine = QFrame()
+        spacerLine.setFrameShape(QFrame.HLine)
+        spacerLine.setFrameShadow(QFrame.Sunken)
+        spacerLine.setLineWidth(1)
+        
+        # Processed target layout
+        Target = QVBoxLayout()
+        Target.addWidget(spacerLine)
+        Target.addWidget(self.processedTargetLabel)
+        Target.addWidget(self.processedTarget)
+        Target.setAlignment(Qt.AlignCenter)
+        Target.setAlignment(Qt.AlignBaseline)
+        Target.addStretch(1)
         
         # Image layout
         Imglayout = QHBoxLayout()
@@ -448,6 +492,12 @@ class MainWindow(QMainWindow):
         ImgInfo.addWidget(self.loadedImgNumber, 0, 1)
         ImgInfo.addWidget(self.btnPixInfo, 1, 0)
         ImgInfo.addWidget(self.editPixInfo, 1, 1)
+        ImgInfo.addWidget(self.userInput, 2, 0)
+        ImgInfo.addWidget(self.editUserInput, 2, 1)
+        ImgInfo.addWidget(self.userInputShape, 3, 0)
+        ImgInfo.addWidget(self.editUserInputShape, 3, 1)
+        ImgInfo.addWidget(self.userInputColor, 4, 0)
+        ImgInfo.addWidget(self.editUserInputColor, 4, 1)
         
         # Buttons layout
         Btnlayout = QVBoxLayout()
@@ -457,6 +507,8 @@ class MainWindow(QMainWindow):
         Btnlayout.addLayout(ImgInfo)
         Btnlayout.addWidget(self.cropImage)
         Btnlayout.addStretch(1)
+        # Add the last processed target image
+        Btnlayout.addLayout(Target)
         
         # Final GUI layout
         GUILayout = QHBoxLayout()
@@ -477,8 +529,8 @@ class MainWindow(QMainWindow):
 #        
 #        self.sendLinuxCmdThread2 = CancelCameraTriggerCommandThread()
 
-        self.sendLinuxCmd = CamTrigWorker.camTrigWorker()
-        self.sendLinuxCmd2 = CamTrigWorker.camTrigWorker()
+        self.sendLinuxCmd = CamTrigWorker.CamTrigWorker()
+        self.sendLinuxCmd2 = CamTrigWorker.CamTrigWorker()
         self.sendLinuxCmd_thread_startCamTrig = QThread()
         self.sendLinuxCmd_thread_detectCam = QThread()
 #        self.sendLinuxCmd_thread_cancelCamTrig = QThread()
@@ -493,7 +545,7 @@ class MainWindow(QMainWindow):
 #        self.sendLinuxCmd_thread_cancelCamTrig.started.connect(self.sendLinuxCmd2.cancelTrigCmd)
     
     def start(self):
-        # start QTimer thread
+        # start QTimer thread for updating image directory
         self.timer.start()
         # use stop() to stop
 #        self.timer.stop()
@@ -510,18 +562,10 @@ class MainWindow(QMainWindow):
     def btnCamTrigHandler(self):
         if self.btnCamTrig.isChecked():
             self.btnCamTrig.setText('Cancel Triggering Camera')
-#            self.sendLinuxCmdThread.start()
-            
-#            self.sendLinuxCmd.finishedTriggering.connect(self.sendLinuxCmd_thread_startCamTrig.quit)
             self.sendLinuxCmd_thread_startCamTrig.start()
         else:
             self.btnCamTrig.setText('Start Triggering Camera')
             self.sendLinuxCmd.cancelTrigCmd()
-#            self.sendLinuxCmd_thread_startCamTrig.quit()
-#            self.sendLinuxCmdThread.quit()
-#            self.sendLinuxCmdThread2.start()
-#            self.sendLinuxCmd_thread_startCamTrig.quit()
-#            self.sendLinuxCmd_thread_cancelCamTrig.start()
             self.sendLinuxCmd.finishedTriggering.connect(self.sendLinuxCmd_thread_startCamTrig.quit)
 
     @pyqtSlot('PyQt_PyObject')
@@ -547,25 +591,32 @@ class MainWindow(QMainWindow):
         getPixel = self.editPixInfo.text().split(', ') # pixel location of clicked target
         getEXIF.getExif(self.viewer.imgPath, self.viewer.imgList, self.viewer.imgNumber, getPixel[0], getPixel[1])
         self.viewer.saveCropEvent()
+        
+    def getUserInputInfo(self):
+        self.getAlphanumeric = self.editUserInput.currenText()
+        self.getShape = self.editUserInputShape.currentText()
     
     def loadImage(self):
         self.viewer.setPhoto(QPixmap(self.viewer.imgPath + self.viewer.imgList[self.viewer.imgNumber]))
-        
-    def triggerCam(self):
-        pass
+    
+    @pyqtSlot(QPixmap)
+    def showProcessedTarget(self, pixmap):
+        self.processedTarget.setPixmap(pixmap.scaled(200, 200, Qt.KeepAspectRatio))
+        self.processedTarget.setAlignment(Qt.AlignCenter)
         
     def about(self):
         QMessageBox.about(self, 
             "About KSU SUAS Image Analysis",
             """<b>KSU SUAS Image Analysis</b>
                <p>Copyright &copy; 2019 KSU SUAS, All Rights Reserved.
-               <p>Python %s -- Qt %s -- PyQt %s on %s""" %
-            (platform.python_version(),
-             QT_VERSION_STR, PYQT_VERSION_STR, platform.system()))
+               <p>Python %s -- Qt %s -- PyQt %s on %s""" %(platform.python_version(),
+                                                           QT_VERSION_STR, PYQT_VERSION_STR,
+                                                           platform.system()))
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     window = MainWindow()
+    window.setStyleSheet("QMainWindow { background: rgb(81,40,136) }")
     window.resize(800, 500)
     window.showMaximized()
     window.show()   
