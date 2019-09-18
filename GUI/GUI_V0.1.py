@@ -458,7 +458,7 @@ class MainWindow(QMainWindow):
         self.processedTargetLabel = QLabel(self)
         self.processedTargetLabel.setFrameShape(QFrame.Panel)
         self.processedTargetLabel.setFrameShadow(QFrame.Sunken)
-        self.processedTargetLabel.setText('<b>Last Processed Target</b>')
+        self.processedTargetLabel.setText('<b>Previous Target</b>')
         self.processedTargetLabel.setStyleSheet("QLabel { color: rgb(255,255,255) }")
         self.processedTargetLabel.setStyleSheet("QLabel { background-color: rgb(167,167,167) }")
         self.processedTargetLabel.setAlignment(Qt.AlignCenter)
@@ -590,11 +590,19 @@ class MainWindow(QMainWindow):
     def imageCrop(self):
         getPixel = self.editPixInfo.text().split(', ') # pixel location of clicked target
         getEXIF.getExif(self.viewer.imgPath, self.viewer.imgList, self.viewer.imgNumber, getPixel[0], getPixel[1])
+        self.getUserInputInfo()
+        print(self.getAlphanumeric)
+        print(self.getShape)
+        print(self.getColor)
         self.viewer.saveCropEvent()
         
     def getUserInputInfo(self):
-        self.getAlphanumeric = self.editUserInput.currenText()
-        self.getShape = self.editUserInputShape.currentText()
+        self.getAlphanumeric = self.editUserInput.text()
+        self.getShape = self.editUserInputShape.text()
+        self.getColor = self.editUserInputColor.text()
+        self.editUserInput.clear()
+        self.editUserInputShape.clear()
+        self.editUserInputColor.clear()
     
     def loadImage(self):
         self.viewer.setPhoto(QPixmap(self.viewer.imgPath + self.viewer.imgList[self.viewer.imgNumber]))
