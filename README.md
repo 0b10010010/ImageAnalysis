@@ -6,4 +6,5 @@ Use right mouse button to drag an area of interest then click on the Crop button
 
 To navigate through images simply press arrow keys.
 
-"Detect Camera" button is used to check if the camera is visible to onboard computer. When the available camera returns in console "Start Triggering Camera" button can be used to send signal to the camera to capture images at 3-second interval. Camera triggering can be aborted using the same button (it will say "Cancel Triggering Camera").
+"Detect Camera" button is used to check if the camera is visible to onboard computer. When the available camera returns in console "Start Triggering Camera" button can be used to send signal to the camera to capture images at 3-second interval. Camera triggering can be aborted using the same button (it will say "Cancel Triggering Camera"). Green button means the camera is triggering and red button means it is not.
+
