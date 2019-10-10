@@ -3,24 +3,21 @@
 """
 Created on Wed Sep 18 01:03:24 2019
 
-@author: alexk
+@author: Alex Kim
 """
 
 from os import listdir, path
-from PyQt5.QtWidgets import (QMainWindow, QApplication, QDialog, QLineEdit, 
-                             QVBoxLayout, QAction, QSizePolicy, QHBoxLayout,
-                             QGridLayout, QShortcut, QGraphicsView, QLabel,
-                             QGraphicsScene, QGraphicsPixmapItem, QFrame,
-                             QToolButton, QRubberBand, QMessageBox, QSpacerItem)
-from PyQt5.QtCore import (pyqtSignal, pyqtSlot, QPointF, Qt, QRectF, QThread, QPoint,
-                          QRect, QSize, QTimer, QT_VERSION_STR, PYQT_VERSION_STR)
-from PyQt5.QtGui import QBrush, QColor, QPixmap, QKeySequence, QIcon
+from PyQt5.QtWidgets import (QGraphicsView, QGraphicsScene, QGraphicsPixmapItem,
+                             QFrame, QRubberBand)
+from PyQt5.QtCore import pyqtSignal, QPointF, Qt, QRectF, QPoint, QRect, QSize
+from PyQt5.QtGui import QBrush, QColor, QPixmap
 ###############################################################################
 ###############################################################################
 ###############################################################################
 class PhotoViewer(QGraphicsView):
     '''
-        Handles image display related methods such as scrolling zoom
+        Handles image display related methods such as scrolling zoom, drag to
+        crop and etc.
     '''
     # pyqtSignals for respective slots
     photoClicked = pyqtSignal(QPointF)

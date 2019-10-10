@@ -3,7 +3,7 @@
 """
 Created on Fri Sep  6 20:32:48 2019
 
-@author: alexk
+@author: Alex Kim
 """
 
 from PIL import Image, ExifTags

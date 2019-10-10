@@ -12,9 +12,8 @@ from PyQt5.QtWidgets import (QMainWindow, QApplication, QDialog, QLineEdit,
                              QVBoxLayout, QAction, QSizePolicy, QHBoxLayout,
                              QGridLayout, QShortcut, QGraphicsView, QLabel,
                               QFrame, QToolButton, QMessageBox)
-from PyQt5.QtCore import (pyqtSignal, pyqtSlot, QPointF, Qt, QRectF, QThread, QPoint,
-                          QRect, QSize, QTimer, QT_VERSION_STR, PYQT_VERSION_STR)
-from PyQt5.QtGui import QBrush, QColor, QPixmap, QKeySequence, QIcon
+from PyQt5.QtCore import pyqtSlot, Qt, QThread, QTimer, QT_VERSION_STR, PYQT_VERSION_STR
+from PyQt5.QtGui import QPixmap, QKeySequence, QIcon
 from PhotoViewer import PhotoViewer
 # TODO: using EXIF orientation number rotate the target image
 
@@ -22,6 +21,14 @@ from PhotoViewer import PhotoViewer
 # OBC: Onboard computer (Odroid XU4)
 # GCS: Ground Control Station (Image Analysis and Mission Planner PC)
 ###############################################################################
+
+'''
+Basic application workflow:
+    GUI runs on the GCS computer.
+    Camera control commands are sent from GCS to OBC over 5GHz
+    Pictures will be taken at three second interval and save to shared directory
+    between the air and ground.
+'''
 
 ###############################################################################
 ###############################################################################
@@ -61,7 +68,7 @@ class MainWindow(QMainWindow):
         self.readLog = ReadTelemetryLog()
         
         # Add Window Title
-        self.setWindowTitle('Team Spycat Image Analysis 0.0')
+        self.setWindowTitle('Team Spycat Image Analysis 1.0')
         
         # Add an Icon
         self.setWindowIcon(QIcon('airport.svg'))
@@ -90,7 +97,6 @@ class MainWindow(QMainWindow):
         #######################################################################
         # CREATE CENTRAL WIDGET
         #######################################################################
-        self.widget = QDialog()
 
         # Info Bar ############################################################        
         # 'Detect Camera' button
@@ -242,15 +248,18 @@ class MainWindow(QMainWindow):
         GUILayout.addLayout(Imglayout)
         GUILayout.addLayout(Btnlayout)
         
+        self.widget = QDialog()
         self.widget.setLayout(GUILayout)
         self.setCentralWidget(self.widget)
         
+        #######################################################################
+        # THREADING
+        #######################################################################
         # QTimer for updating image directory with new images taken
         self.timer = QTimer(self)
         self.timer.setInterval(3000) # update interval in ms (3 sec)
         self.timer.timeout.connect(self.updateImgDir)
-        
-        # Threading
+
         # Instantiate Worker Objects
         self.sendLinuxCmd = CamTrigWorker.CamTrigWorker()
         self.sendLinuxCmd2 = CamTrigWorker.CamTrigWorker()
@@ -267,7 +276,7 @@ class MainWindow(QMainWindow):
         self.sendLinuxCmd_thread_detectCam.started.connect(self.sendLinuxCmd2.sendDetCmd)
 
     ###########################################################################
-    # Methods
+    # Member Methods
     ###########################################################################  
     def start(self):
         # start QTimer thread for updating image directory
