@@ -3,7 +3,7 @@
 """
 Created on Mon Sep 16 20:08:19 2019
 
-@author: alexk
+@author: Alex Kim
 
 This python script should run on the onboard computer
 """
