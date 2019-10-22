@@ -1,3 +1,11 @@
+/*
+author: Alex Kim
+Base code from TinyGPS++ examples
+
+This script will read incoming GPS data and bridge information to onboard computer via Serial print
+using FTDI USB to serial converter.
+*/
+
 #include <TinyGPS++.h>
 #include <SoftwareSerial.h>
 

@@ -26,3 +26,8 @@ class ReadArduinoSerial(QObject):
         
         GPSData = open('GPSData.txt', 'w')
         GPSData.write(msg + '\n')
+
+		print(msg)
+
+if __name__ == "__main__":
+	readSerial()
