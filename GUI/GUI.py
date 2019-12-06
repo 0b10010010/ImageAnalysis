@@ -346,6 +346,7 @@ class MainWindow(QMainWindow):
         print(self.getOrientation)
     
     def loadImage(self):
+#        print(self.viewer.imgList)
         self.viewer.setPhoto(QPixmap(self.viewer.imgPath + self.viewer.imgList[self.viewer.imgNumber]))
         
     # Receive and display the signal when cropped pixmap is created
