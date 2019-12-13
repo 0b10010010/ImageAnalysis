@@ -13,9 +13,9 @@ from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 
 class ReadArduinoSerial(QObject):
     finished = pyqtSignal()
-    port = '/dev/serial/'
+    port = '/dev/ttyUSB1'
     baud = 115200
-    
+    msg  = ''
     arduino = serial.Serial(port, baud, timeout=5)
     
     @pyqtSlot()
@@ -24,10 +24,9 @@ class ReadArduinoSerial(QObject):
         
         msg = self.arduino.read(self.arduino.in_waiting())
         
-        GPSData = open('GPSData.txt', 'w')
-        GPSData.write(msg + '\n')
-
-		print(msg)
-
-if __name__ == "__main__":
-	readSerial()
+#        GPSData = open('GPSData.txt', 'w')
+#        GPSData.write(msg + '\n')
+        print(msg)
+        
+while (1):
+    ReadArduinoSerial.msg()
