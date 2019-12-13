@@ -17,7 +17,7 @@ class CamTrigWorker(QObject):
     finishedCancelTrig = pyqtSignal()
     respReady = pyqtSignal('PyQt_PyObject')
     
-    host = 'odroid@odroid'
+    host = 'odroid@192.168.15.99'
     mkdir = 'cd ~/Desktop/Capture#%d;'
     mkdirNum = 1
 

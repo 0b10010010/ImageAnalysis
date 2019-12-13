@@ -324,7 +324,7 @@ class MainWindow(QMainWindow):
             
     def imageCrop(self):
         getPixel = self.editPixInfo.text().split(', ') # pixel location of clicked target
-        getEXIF.getExif(self.viewer.imgPath, self.viewer.imgList, self.viewer.imgNumber, getPixel[0], getPixel[1])
+#        getEXIF.getExif(self.viewer.imgPath, self.viewer.imgList, self.viewer.imgNumber, getPixel[0], getPixel[1]) #TODO: fix the index out of range error
         self.getUserInputInfo()
         self.viewer.saveCropEvent()
         
