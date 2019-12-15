@@ -22,7 +22,7 @@ class ReadArduinoSerialWorker():
         while (True):
             self.msg = self.arduino.readline()
             self.GPSData = open('GPSData.txt', 'a')
-    #        self.GPSData = open('/home/spycat/Desktop/image-analysis/ProcessedTargets/GPSData.txt', 'a')
+    #        self.GPSData = open('/home/spycat/Desktop/image-analysis/ProcessedTargets/GPSData.txt', 'a') # TODO: save to shared directory where images will be
             self.GPSData.write(self.msg.decode('utf-8'))
 #        self.GPSData.close()
 
