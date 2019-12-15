@@ -6,7 +6,6 @@ Created on Wed Sep 18 01:03:24 2019
 @author: Alex Kim
 """
 
-import SftpClient
 from os import listdir, path
 from PyQt5.QtWidgets import (QGraphicsView, QGraphicsScene, QGraphicsPixmapItem,
                              QFrame, QRubberBand)
@@ -40,8 +39,8 @@ class PhotoViewer(QGraphicsView):
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setBackgroundBrush(QBrush(QColor(209,209,209)))
         self.setFrameShape(QFrame.NoFrame)
-#        self.imgPath = path.dirname(path.realpath(__file__)) + '/CamFeedbackTest/img/'
-        self.imgPath = '/home/spycat/Desktop/Capture#2/' # TODO: This is the shared dir between onboard computer and GCS
+        self.imgPath = path.dirname(path.realpath(__file__)) + '/CamFeedbackTest/img/'
+#        self.imgPath = '/home/spycat/Desktop/Capture#2/' # TODO: This is the shared dir between onboard computer and GCS
         self.imgList = listdir(self.imgPath)
         self.imgList.sort()
         self.listLim = len(self.imgList)
@@ -49,22 +48,6 @@ class PhotoViewer(QGraphicsView):
         self.origin = QPoint()
         self.rubberBand = QRubberBand(QRubberBand.Rectangle, self)
         self.changeRubberBand = False
-        self.initSftp
-        
-    def initSftp(self):
-        host = '192.168.15.99' # odroid IP on Octo
-        port = 22
-        username = 'odroid'
-        password = 'Imageanalysis!'
-    
-        download_remote_path = '/home/odroid/Desktop/Capture#1'
-        download_local_path = self.imgPath
-        
-        client = SftpClient(host, port,
-                            username, password)
-    
-        client.download(download_remote_path,
-                        download_local_path)
         
     def hasPhoto(self):
         return not self._empty
