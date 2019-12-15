@@ -6,7 +6,7 @@ Created on Sat Jan 19 12:49:01 2019
 @author: Alex Kim
 """
 
-import sys, platform, getEXIF, CamTrigWorker, ReadArduinoSerial
+import sys, platform, getEXIF, CamTrigWorker
 #from os import path
 from PyQt5.QtWidgets import (QMainWindow, QApplication, QDialog, QLineEdit, 
                              QVBoxLayout, QAction, QSizePolicy, QHBoxLayout,

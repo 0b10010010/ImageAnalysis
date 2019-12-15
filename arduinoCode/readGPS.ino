@@ -228,12 +228,12 @@ void loop() {
 void sendGPS() {
   imageIndex++;
   Serial.print("imageIndex: "); Serial.print(imageIndex);
-  Serial.print(" #SV: ");      Serial.print(ubxMessage.pvt.numSV);
-  Serial.print(" fixType: "); Serial.print(ubxMessage.pvt.fixType);
+//  Serial.print(" #SV: ");      Serial.print(ubxMessage.pvt.numSV);
+//  Serial.print(" fixType: "); Serial.print(ubxMessage.pvt.fixType);
   Serial.print(" Date:");     Serial.print(ubxMessage.pvt.year); Serial.print("/"); Serial.print(ubxMessage.pvt.month); Serial.print("/"); Serial.print(ubxMessage.pvt.day); Serial.print(" "); Serial.print(ubxMessage.pvt.hour); Serial.print(":"); Serial.print(ubxMessage.pvt.minute); Serial.print(":"); Serial.print(ubxMessage.pvt.second); Serial.print(":"); Serial.print(ubxMessage.pvt.nano);
   Serial.print(" lat/lon: "); Serial.print(ubxMessage.pvt.lat / 10000000.0f); Serial.print(","); Serial.print(ubxMessage.pvt.lon / 10000000.0f);
-  Serial.print(" gSpeed: ");  Serial.print(ubxMessage.pvt.gSpeed / 1000.0f);
-  Serial.print(" heading: "); Serial.print(ubxMessage.pvt.heading / 100000.0f);
-  Serial.print(" hAcc: ");    Serial.print(ubxMessage.pvt.hAcc / 1000.0f);
+//  Serial.print(" gSpeed: ");  Serial.print(ubxMessage.pvt.gSpeed / 1000.0f);
+//  Serial.print(" heading: "); Serial.print(ubxMessage.pvt.heading / 100000.0f);
+//  Serial.print(" hAcc: ");    Serial.print(ubxMessage.pvt.hAcc / 1000.0f);
   Serial.println();
 }
