@@ -7,7 +7,7 @@ Created on Sat Jan 19 12:49:01 2019
 """
 
 import sys, platform, getEXIF, CamTrigWorker
-from os import path
+#from os import path
 from PyQt5.QtWidgets import (QMainWindow, QApplication, QDialog, QLineEdit, 
                              QVBoxLayout, QAction, QSizePolicy, QHBoxLayout,
                              QGridLayout, QShortcut, QGraphicsView, QLabel,
@@ -33,27 +33,28 @@ Basic application workflow:
 ###############################################################################
 ###############################################################################
 ###############################################################################
-class ReadTelemetryLog():
-    def __init__(self):
-        self.dict = {}
-        self.infoByFrame = []
-        self.lattitudes = []
-        self.longitudes = []
-        self.logFilePath = path.dirname(path.realpath(__file__)) + '/CamFeedbackTest/flight.txt'
-        
-    def readAttitude(self):
-        with open(self.logFilePath, 'rt') as in_file:
-            for line in in_file:
-#                self.infoByFrame.append(line.split(','))
-                self.infoByFrame.append(line[39::])
-#                self.longitudes.append(line.)
-#        print(self.infoByFrame)
-        for lines in self.infoByFrame:
-            self.lattitudes.append(lines[76:86].split(',')[0])
-        print(self.lattitudes[0])
-        
-    def transform():
-        pass
+# TODO: Read from GPSData.txt on OBC
+#class ReadTelemetryLog():
+#    def __init__(self):
+#        self.dict = {}
+#        self.infoByFrame = []
+#        self.lattitudes = []
+#        self.longitudes = []
+#        self.logFilePath = path.dirname(path.realpath(__file__)) + '/CamFeedbackTest/flight.txt'
+#        
+#    def readAttitude(self):
+#        with open(self.logFilePath, 'rt') as in_file:
+#            for line in in_file:
+##                self.infoByFrame.append(line.split(','))
+#                self.infoByFrame.append(line[39::])
+##                self.longitudes.append(line.)
+##        print(self.infoByFrame)
+#        for lines in self.infoByFrame:
+#            self.lattitudes.append(lines[76:86].split(',')[0])
+#        print(self.lattitudes[0])
+#        
+#    def transform():
+#        pass
     
 ###############################################################################
 ###############################################################################
@@ -63,9 +64,12 @@ class MainWindow(QMainWindow):
         '''
             MainWindow Object to put together GUI layouts and its Widgets
         '''
-        super(MainWindow, self).__init__(parent)
+#        super(MainWindow, self).__init__(parent)
+        super().__init__()
         self.viewer = PhotoViewer(self)
-        self.readLog = ReadTelemetryLog()
+#        self.readLog = ReadTelemetryLog()
+        
+        self.flightNumber = 0
         
         # Add Window Title
         self.setWindowTitle('Team Spycat Image Analysis 1.0')
@@ -263,18 +267,21 @@ class MainWindow(QMainWindow):
         # Instantiate Worker Objects
         self.sendLinuxCmd = CamTrigWorker.CamTrigWorker()
         self.sendLinuxCmd2 = CamTrigWorker.CamTrigWorker()
+        
         # Instantiate Thread Objects
         self.sendLinuxCmd_thread_startCamTrig = QThread()
         self.sendLinuxCmd_thread_detectCam = QThread()
         
-        self.sendLinuxCmd.respReady.connect(self.printStatus)
         # Move Worker Objs to Thread
         self.sendLinuxCmd.moveToThread(self.sendLinuxCmd_thread_startCamTrig)
         self.sendLinuxCmd2.moveToThread(self.sendLinuxCmd_thread_detectCam)
+        
         # Connect signals when threads start
         self.sendLinuxCmd_thread_startCamTrig.started.connect(self.sendLinuxCmd.sendMkdirCmd)
         self.sendLinuxCmd_thread_detectCam.started.connect(self.sendLinuxCmd2.sendDetCmd)
-
+        
+        self.sendLinuxCmd.respReady.connect(self.printStatus)
+        
     ###########################################################################
     # Member Methods
     ###########################################################################  
