@@ -17,6 +17,7 @@ class CamTrigWorker(QObject):
     finishedCancelTrig = pyqtSignal()
     respReady = pyqtSignal('PyQt_PyObject')
     
+
     def __init__(self):
         super().__init__()
         self.host = 'odroid@odroid'
@@ -29,6 +30,18 @@ class CamTrigWorker(QObject):
         self.stopTrig = 'gphoto2 --reset-interval'
         self.cancelTrig = signal.SIGINT
         self.result = []
+
+    host = 'odroid@192.168.15.99'
+    mkdir = 'cd ~/Desktop/Capture#%d;'
+    mkdirNum = 1
+
+    # gphoto2 shell commands
+    detectCam = 'gphoto2 --auto-detect'
+    triggerCam = 'gphoto2 --capture-image-and-download --interval 3'
+    stopTrig = 'gphoto2 --reset-interval'
+    cancelTrig = signal.SIGINT
+    result = []
+
     
 #    process = subprocess.Popen(["ssh", "%s" % host], shell=False, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     
