@@ -11,6 +11,10 @@ This python script should run on the onboard computer
 import serial, threading
 
 class ReadArduinoSerialWorker():
+    '''
+        Read serial data from the Arduino onboard via USB and save to a text
+        file    
+    '''
     def __init__(self):
         self.port = '/dev/ttyUSB1' #TODO: Change this port accordingly
         self.baud = 115200
