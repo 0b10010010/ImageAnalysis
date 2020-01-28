@@ -107,11 +107,12 @@ union UBXMessage {
 };
 
 UBXMessage ubxMessage;
+UBXMessage tempUbxMessage;
 
 // Compares the first two bytes of the ubxMessage struct with a specific message header.
 // Returns true if the two bytes match.
 boolean compareMsgHeader(const unsigned char* msgHeader) {
-  unsigned char* ptr = (unsigned char*)(&ubxMessage);
+  unsigned char* ptr = (unsigned char*)(&tempUbxMessage);
   return ptr[0] == msgHeader[0] && ptr[1] == msgHeader[1];
 }
 
@@ -143,7 +144,7 @@ int readGPS() {
       // Place the incoming byte into the ubxMessage struct. The position is fpos-2 because
       // the struct does not include the initial two-byte header (UBX_HEADER).
       if ( (fpos - 2) < payloadSize )
-        ((unsigned char*)(&ubxMessage))[fpos - 2] = c;
+        ((unsigned char*)(&tempUbxMessage))[fpos - 2] = c;
 
       fpos++;
 
@@ -188,6 +189,7 @@ int readGPS() {
         fpos = 0; // We will reset the state regardless of whether the checksum matches.
         if ( c == checksum[1] ) {
           // Checksum matches, we have a valid message.
+		  memcpy(ubxMessage, tempUbxMessage, sizeof(tempUbxMessage));
           return currentMsgType;
         }
       }
@@ -206,7 +208,7 @@ int readGPS() {
 void calcChecksum(unsigned char* CK, int msgSize) {
   memset(CK, 0, 2);
   for (int i = 0; i < msgSize; i++) {
-    CK[0] += ((unsigned char*)(&ubxMessage))[i];
+    CK[0] += ((unsigned char*)(&tempUbxMessage))[i];
     CK[1] += CK[0];
   }
   // ensure unsigned byte range
