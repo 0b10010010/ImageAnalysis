@@ -39,8 +39,8 @@ class PhotoViewer(QGraphicsView):
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setBackgroundBrush(QBrush(QColor(209,209,209)))
         self.setFrameShape(QFrame.NoFrame)
-        self.imgPath = path.dirname(path.realpath(__file__)) + '/CamFeedbackTest/img/'
-#        self.imgPath = '/home/spycat/Desktop/Capture#2/' # TODO: This is the shared dir between onboard computer and GCS
+#        self.imgPath = path.dirname(path.realpath(__file__)) + '/CamFeedbackTest/img/'
+        self.imgPath = '/home/spykat/Desktop/imgTargetDir/' # TODO: This is the shared dir between onboard computer and GCS
         self.imgList = listdir(self.imgPath)
         self.imgList.sort()
         self.listLim = len(self.imgList)

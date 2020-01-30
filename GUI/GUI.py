@@ -352,7 +352,7 @@ class MainWindow(QMainWindow):
         print(self.getShapeColor)
         print(self.getOrientation)
     
-    def loadImage(self):
+    def loadImage(self, viewer):
 #        print(self.viewer.imgList)
         self.viewer.setPhoto(QPixmap(self.viewer.imgPath + self.viewer.imgList[self.viewer.imgNumber]))
         
