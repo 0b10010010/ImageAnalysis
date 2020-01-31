@@ -345,6 +345,7 @@ class MainWindow(QMainWindow):
         self.editUserInputShape.clear()
         self.editUserInputShapeColor.clear()
         self.editUserInputOrientation.clear()
+        # TODO: instead of printing pass the reference for sending to interop
         print(self.getAlphanumeric)
         print(self.getAlphanumericColor)
         print(self.getShape)

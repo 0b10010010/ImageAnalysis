@@ -20,9 +20,9 @@ class CamTrigWorker(QObject):
 
     def __init__(self):
         super().__init__()
-        self.host = 'odroid@odroid'
-        self.mkdir = 'cd ~/Desktop/Capture#%d;'
-        self.mkdirNum = 1
+        self.host = 'odroid@192.168.15.99'
+        self.dir = 'cd ~/Desktop/Capture#%d;'
+        self.dirNum = 1
     
         # gphoto2 shell commands
         self.detectCam = 'gphoto2 --auto-detect'
@@ -31,24 +31,24 @@ class CamTrigWorker(QObject):
         self.cancelTrig = signal.SIGINT
         self.result = []
 
-    host = 'odroid@192.168.15.99'
-    mkdir = 'cd ~/Desktop/Capture#%d;'
-    mkdirNum = 1
-
-    # gphoto2 shell commands
-    detectCam = 'gphoto2 --auto-detect'
-    triggerCam = 'gphoto2 --capture-image-and-download --interval 3'
-    stopTrig = 'gphoto2 --reset-interval'
-    cancelTrig = signal.SIGINT
-    result = []
+#    host = 'odroid@192.168.15.99'
+#    mkdir = 'cd ~/Desktop/Capture#%d;'
+#    mkdirNum = 1
+#
+#    # gphoto2 shell commands
+#    detectCam = 'gphoto2 --auto-detect'
+#    triggerCam = 'gphoto2 --capture-image-and-download --interval 3'
+#    stopTrig = 'gphoto2 --reset-interval'
+#    cancelTrig = signal.SIGINT
+#    result = []
 
     
 #    process = subprocess.Popen(["ssh", "%s" % host], shell=False, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     
     @pyqtSlot()
     def sendMkdirCmd(self):
-        self.cmdMkdir = subprocess.Popen(["ssh", "{}".format(self.host), (self.mkdir%self.mkdirNum + self.triggerCam)], shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        self.mkdirNum += 1
+        self.cmdMkdir = subprocess.Popen(["ssh", "{}".format(self.host), (self.dir%self.dirNum + self.triggerCam)], shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        self.dirNum += 1
         self.result = self.cmdMkdir.stdout.read()
         if self.result == []:
             error = self.cmdMkdir.stderr.read()
