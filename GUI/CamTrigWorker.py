@@ -48,18 +48,13 @@ class CamTrigWorker(QObject):
     @pyqtSlot()
     def sendMkdirCmd(self):
         self.cmdMkdir = subprocess.Popen(["ssh", "{}".format(self.host), (self.mkdir%self.mkdirNum + self.triggerCam)], shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-#        (self.result, self.err) = self.process.communicate(bytes(self.triggerCam, 'utf-8'))
         self.mkdirNum += 1
         self.result = self.cmdMkdir.stdout.read()
-#        (self.result, self.err) = self.cmdMkdir.communicate()
-#        self.respReady.emit((self.result))
-        
         if self.result == []:
             error = self.cmdMkdir.stderr.read()
             print(sys.stderr, "ERROR: {}".format(error.decode('utf-8')))
         else:
             print(self.result.decode('utf-8'))
-#        print(self.result)
     
     @pyqtSlot()
     def sendDetCmd(self):

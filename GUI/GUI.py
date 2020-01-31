@@ -7,7 +7,6 @@ Created on Sat Jan 19 12:49:01 2019
 """
 
 import sys, platform, getEXIF, CamTrigWorker
-#from os import path
 from PyQt5.QtWidgets import (QMainWindow, QApplication, QDialog, QLineEdit, 
                              QVBoxLayout, QAction, QSizePolicy, QHBoxLayout,
                              QGridLayout, QShortcut, QGraphicsView, QLabel,
@@ -280,7 +279,7 @@ class MainWindow(QMainWindow):
         self.sendLinuxCmd_thread_startCamTrig.started.connect(self.sendLinuxCmd.sendMkdirCmd)
         self.sendLinuxCmd_thread_detectCam.started.connect(self.sendLinuxCmd2.sendDetCmd)
         
-        self.sendLinuxCmd.respReady.connect(self.printStatus)
+#        self.sendLinuxCmd.respReady.connect(self.printStatus)
         
     ###########################################################################
     # Member Methods
@@ -309,10 +308,10 @@ class MainWindow(QMainWindow):
             self.sendLinuxCmd.cancelTrigCmd()
             self.sendLinuxCmd.finishedTriggering.connect(self.sendLinuxCmd_thread_startCamTrig.quit)
             
-    # TODO: figure out if there's a way to print triggering feedback from OBC
-    @pyqtSlot('PyQt_PyObject')
-    def printStatus(self, status):
-        print(status)
+#    # TODO: figure out if there's a way to print triggering feedback from OBC
+#    @pyqtSlot('PyQt_PyObject')
+#    def printStatus(self, status):
+#        print(status)
 
 #    def pixInfo(self): # TODO: methods to handle EXIF processing and calculations
 #        self.viewer.toggleDragMode()
@@ -352,7 +351,7 @@ class MainWindow(QMainWindow):
         print(self.getShapeColor)
         print(self.getOrientation)
     
-    def loadImage(self):
+    def loadImage(self, viewer):
 #        print(self.viewer.imgList)
         self.viewer.setPhoto(QPixmap(self.viewer.imgPath + self.viewer.imgList[self.viewer.imgNumber]))
         
