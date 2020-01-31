@@ -1,11 +1,11 @@
 # KSU SUAS Image Analysis GUI
 
-Before anything else happens, run the following command:
+Before anything else happens, run the following command when OBC boots:
 ```
 ssh odroid@OBC_IP
 lsyncd /etc/lsyncd/lsyncd.conf.lua
 ```
-Above commands will ssh into OBC from GCS and start lsyncd to sync image directory on GCS to the one on OBC where images are stored.
+Above commands will ssh into OBC from GCS and start lsyncd to sync the target image directory on GCS to the source directory on OBC where images are actually stored.
 
 To use the GUI simply launch the GUI python script. When it opens, click on "Load Image" button.
 Image from sorted list should be loaded to GUI and users can use mouse wheel scroll to zoom in and out of the image.
