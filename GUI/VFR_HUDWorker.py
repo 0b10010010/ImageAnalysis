@@ -8,3 +8,5 @@ Created on Fri Jan 31 19:44:15 2020
 
 class VFR_HUDWorker():
     
+    def __init__(self):
+        self.

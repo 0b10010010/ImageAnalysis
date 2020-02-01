@@ -12,4 +12,13 @@ sync {
         archive = true,
         compress = true
     }
+sync {
+    default.rsync,
+    source="/home/odroid/Desktop/VFR_HUD",
+    target="spykat@192.168.15.102:/home/spykat/Desktop/image-analysis/GUI",
+    delay = 0,
+    rsync = {
+        archive = true,
+        compress = true
+    }
 }

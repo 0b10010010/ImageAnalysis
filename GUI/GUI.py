@@ -129,7 +129,7 @@ class MainWindow(QMainWindow):
         self.btnLoad.clicked.connect(self.loadImage)
         
         # Display Information
-        self.loadedImg = QLabel('<b>Frame #:</b>')
+        self.loadedImg = QLabel('<b>Frame #:</b>')                          
         self.loadedImg.setStyleSheet("QLabel { color: rgb(255,255,255)}")                                
         self.loadedImg.setFixedWidth(100)
         self.loadedImgNumber = QLineEdit(self)
@@ -183,6 +183,22 @@ class MainWindow(QMainWindow):
         self.cropImage.clicked.connect(self.imageCrop)
 #        self.cropImage.clicked.connect(self.readLog.transform)
         
+        # Display VFR HUD Items
+        self.latitude = QLabel('<b>Latitude:</b>')
+        self.latitude.setStyleSheet("QLabel { color: rgb(255,255,255)}")                                
+        self.latitude.setFixedWidth(100)
+        self.latitudeValue = QLineEdit(self)
+        self.latitudeValue.setReadOnly(True)
+        self.latitudeValue.setFixedWidth(100)
+        self.latitudeValue.setText('{}'.format(self.viewer.imgNumber))
+        self.longitude = QLabel('<b>Longitude:</b>')
+        self.longitude.setStyleSheet("QLabel { color: rgb(255,255,255)}")                                
+        self.longitude.setFixedWidth(100)
+        self.longitudeValue = QLineEdit(self)
+        self.longitudeValue.setReadOnly(True)
+        self.longitudeValue.setFixedWidth(100)
+        self.longitudeValue.setText('{}'.format(self.viewer.imgNumber))        
+        
         # Display the last processed target image
         self.processedTargetLabel = QLabel(self)
         self.processedTargetLabel.setFrameShape(QFrame.Panel)
@@ -218,7 +234,7 @@ class MainWindow(QMainWindow):
         Imglayout = QHBoxLayout()
         Imglayout.addWidget(self.viewer)
 
-        # Image Information
+        # Image Information Grid
         ImgInfo = QGridLayout()
         ImgInfo.addWidget(self.loadedImg, 0, 0)
         ImgInfo.addWidget(self.loadedImgNumber, 0, 1)
@@ -235,6 +251,17 @@ class MainWindow(QMainWindow):
         ImgInfo.addWidget(self.userInputOrientation, 6, 0)
         ImgInfo.addWidget(self.editUserInputOrientation, 6, 1)
         
+        # VFR HUD Information Grid
+        VFR_HUD = QGridLayout()
+        VFR_HUD.addWidget(self.latitude, 0, 0)
+        VFR_HUD.addWidget(self.latitudeValue, 0, 1)
+        VFR_HUD.addWidget(self.longitude, 1, 0)
+        VFR_HUD.addWidget(self.longitudeValue, 1, 1)
+        VFR_HUD.addWidget(self.userInput, 2, 0)
+        VFR_HUD.addWidget(self.editUserInput, 2, 1)
+        VFR_HUD.addWidget(self.userInputAlphanumericColor, 3, 0)
+        VFR_HUD.addWidget(self.editUserInputAlphanumericColor, 3, 1)        
+
         # Buttons layout
         Btnlayout = QVBoxLayout()
         Btnlayout.addWidget(self.btnDetectCam)
@@ -242,6 +269,7 @@ class MainWindow(QMainWindow):
         Btnlayout.addWidget(self.btnLoad)
         Btnlayout.addLayout(ImgInfo)
         Btnlayout.addWidget(self.cropImage)
+        Btnlayout.addLayout(VFR_HUD)
         Btnlayout.addStretch(1)
         # Add the last processed target image
         Btnlayout.addLayout(Target)
@@ -320,15 +348,15 @@ class MainWindow(QMainWindow):
 #        self.readLog.readAttitude()
         
     def keyPress(self, imgNumber):
-        self.loadedImgNumber.setText('%d' % imgNumber)
+        self.loadedImgNumber.setText('{}'.format(imgNumber))
 
     def photoClick(self, pos):
         self.viewer.toggleDragMode()
         if self.viewer.dragMode()  == QGraphicsView.NoDrag:
-            self.editPixInfo.setText('%d, %d' % (pos.x(), pos.y()))
+            self.editPixInfo.setText('{0:.0f}, {1:.0f}'.format(pos.x(),pos.y()))
             self.viewer.toggleDragMode()
             
-    def imageCrop(self):
+    def imageCrop(self, pos):
         getPixel = self.editPixInfo.text().split(', ') # pixel location of clicked target
 #        getEXIF.getExif(self.viewer.imgPath, self.viewer.imgList, self.viewer.imgNumber, getPixel[0], getPixel[1]) #TODO: fix the index out of range error
         self.getUserInputInfo()
