@@ -11,7 +11,7 @@ import sys, subprocess, signal, os
 
 class CamTrigWorker(QObject):
 #    path = os.getcwd()
-    
+
     finishedTriggering = pyqtSignal()
     finishedDetect = pyqtSignal()
     finishedCancelTrig = pyqtSignal()

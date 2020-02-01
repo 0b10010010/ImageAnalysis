@@ -33,5 +33,8 @@ class ReadArduinoSerialWorker():
 # run infinitely in the background on Odroid
 if __name__ == '__main__':
     r = ReadArduinoSerialWorker()
-    thread = threading.Thread(target=r.readSerialAndWriteToFile())
-    thread.start()
+    r.readSerialAndWriteToFile()
+    # TODO: threading might not be necessary when running on terminal as a background
+    #       processing
+#    thread = threading.Thread(target=r.readSerialAndWriteToFile())
+#    thread.start()
