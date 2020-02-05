@@ -14,6 +14,8 @@ def getExif(imgPath, imgList, imgNumber, pixelX, pixelY): # TODO: Create a dicti
     exifData = image._getexif()
     orientation = 0
 #    dateTime    = 0.0
+    distRealX = 0.0
+    distRealY = 0.0
     imgWidth    = 0
     imgHeight   = 0
     focalLen    = 0    # focal length in mm
@@ -40,6 +42,7 @@ def getExif(imgPath, imgList, imgNumber, pixelX, pixelY): # TODO: Create a dicti
             pass
         elif ExifTags.TAGS.get(tag) == 'ISOSpeedRatings':
             pass
+
     print(orientation)
 #    print(dateTime)
     print(pixelX)

@@ -6,7 +6,7 @@ Created on Sat Jan 19 12:49:01 2019
 @author: Alex Kim
 """
 
-import sys, platform, getEXIF, CamTrigWorker
+import sys, platform, CamTrigWorker
 from PyQt5.QtWidgets import (QMainWindow, QApplication, QDialog, QLineEdit, 
                              QVBoxLayout, QAction, QSizePolicy, QHBoxLayout,
                              QGridLayout, QShortcut, QGraphicsView, QLabel,
@@ -14,7 +14,12 @@ from PyQt5.QtWidgets import (QMainWindow, QApplication, QDialog, QLineEdit,
 from PyQt5.QtCore import pyqtSlot, Qt, QThread, QTimer, QT_VERSION_STR, PYQT_VERSION_STR
 from PyQt5.QtGui import QPixmap, QKeySequence, QIcon
 from PhotoViewer import PhotoViewer
+#from ReadMissionPlannerData import ReadMPDataWorker
+from ReadDroneKitData import ReadDroneKitDataWorker
+from threading import Thread
 # TODO: using EXIF orientation number rotate the target image
+from PIL import Image, ExifTags
+from numpy import sin, cos, tan, arctan, pi, array, empty
 
 ###############################################################################
 # OBC: Onboard computer (Odroid XU4)
@@ -66,6 +71,7 @@ class MainWindow(QMainWindow):
 #        super(MainWindow, self).__init__(parent)
         super().__init__()
         self.viewer = PhotoViewer(self)
+#        self.dronekit = ReadDroneKitDataWorker()
 #        self.readLog = ReadTelemetryLog()
         
         self.flightNumber = 0
@@ -74,7 +80,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle('Team Spycat Image Analysis 1.0')
         
         # Add an Icon
-        self.setWindowIcon(QIcon('airport.svg'))
+        self.setWindowIcon(QIcon('icon/airport.svg'))
         
         #######################################################################
         # ADD SHORTCUTS
@@ -117,6 +123,9 @@ class MainWindow(QMainWindow):
         self.btnCamTrig.setSizePolicy(toolButtonSizePolicy)
         self.btnCamTrig.setText('Start Triggering Camera')
         self.btnCamTrig.clicked.connect(self.btnCamTrigHandler)
+#        self.btnCamTrig.clicked.connect(self.readAndWriteMPData)
+#        self.btnCamTrig.clicked.connect(self.readAndWriteDroneKitData)
+        
 
         # TODO: when trigger button gets pressed create folder and put images there
         
@@ -137,7 +146,7 @@ class MainWindow(QMainWindow):
         self.loadedImgNumber.setFixedWidth(100)
         self.loadedImgNumber.setText('%d' %self.viewer.imgNumber)
         self.viewer.keyPressed.connect(self.keyPress)
-
+        
         # Button to change from drag/pan to getting pixel info
         self.btnPixInfo = QLabel(self)
         self.btnPixInfo.setText('<b>Pixel Info:</b>')
@@ -181,6 +190,7 @@ class MainWindow(QMainWindow):
         self.cropImage.setSizePolicy(toolButtonSizePolicy)
         self.cropImage.setText('Crop and Process')
         self.cropImage.clicked.connect(self.imageCrop)
+        self.cropImage.clicked.connect(self.pixInfo)
 #        self.cropImage.clicked.connect(self.readLog.transform)
         
         # Display VFR HUD Items
@@ -288,26 +298,52 @@ class MainWindow(QMainWindow):
         #######################################################################
         # QTimer for updating image directory with new images taken
         self.timer = QTimer(self)
-        self.timer.setInterval(3000) # update interval in ms (3 sec)
+        self.timer.setInterval(1500) # update interval in ms (1.5 sec)
         self.timer.timeout.connect(self.updateImgDir)
 
         # Instantiate Worker Objects
         self.sendLinuxCmd = CamTrigWorker.CamTrigWorker()
         self.sendLinuxCmd2 = CamTrigWorker.CamTrigWorker()
         
+#        self.Vehicle = ReadDroneKitDataWorker()
+        # connect to the vehicle using dronekit worker class
+        self.vehicle = ReadDroneKitDataWorker()
+        self.vehicleConnectThread =  Thread(target=self.vehicle.connectToVehicle())
+        self.vehicleConnectThread.daemon = True
+        self.vehicleWriteDataThread = Thread(target=self.vehicle.readAndWriteToFile_callback(self.vehicle))
+        self.vehicleWriteDataThread.daemon = True
+        self.vehicleCloseThread = Thread(target=self.vehicle.closeVehicle())
+        
+#        self.vehicleThread.start()
+        
         # Instantiate Thread Objects
         self.sendLinuxCmd_thread_startCamTrig = QThread()
         self.sendLinuxCmd_thread_detectCam = QThread()
+        
+#        self.Vehicle_thread_connect = QThread()
+#        self.Vehicle_thread_close = QThread()
+#        self.Vehicle_thread_writeToFile = QThread()
         
         # Move Worker Objs to Thread
         self.sendLinuxCmd.moveToThread(self.sendLinuxCmd_thread_startCamTrig)
         self.sendLinuxCmd2.moveToThread(self.sendLinuxCmd_thread_detectCam)
         
+#        self.Vehicle.moveToThread(self.Vehicle_thread_connect)
+#        self.Vehicle.moveToThread(self.Vehicle_thread_writeToFile)
+#        self.Vehicle.moveToThread(self.Vehicle_thread_close)
+        
         # Connect signals when threads start
         self.sendLinuxCmd_thread_startCamTrig.started.connect(self.sendLinuxCmd.sendMkdirCmd)
         self.sendLinuxCmd_thread_detectCam.started.connect(self.sendLinuxCmd2.sendDetCmd)
         
+#        self.Vehicle_thread_connect.started.connect(self.Vehicle.connectToVehicle)
+#        self.Vehicle_thread_writeToFile.started.connect(self.Vehicle.readAndWriteToFile)
+#        self.Vehicle_thread_close.started.connect(self.Vehicle.closeVehicle)
 #        self.sendLinuxCmd.respReady.connect(self.printStatus)
+        
+        # For target localization
+        self.pixelX = 0
+        self.pixelY = 0
         
     ###########################################################################
     # Member Methods
@@ -334,15 +370,42 @@ class MainWindow(QMainWindow):
         else:
             self.btnCamTrig.setText('Start Triggering Camera')
             self.sendLinuxCmd.cancelTrigCmd()
-            self.sendLinuxCmd.finishedTriggering.connect(self.sendLinuxCmd_thread_startCamTrig.quit)
+            self.sendLinuxCmd.finishedTriggering.connect(self.sendLinuxCmd_thread_startCamTrig.quit)      
+    
+#    @pyqtSlot()
+#    def readAndWriteMPData(self):
+#        ReadMPDataWorker()
             
-#    # TODO: figure out if there's a way to print triggering feedback from OBC
-#    @pyqtSlot('PyQt_PyObject')
-#    def printStatus(self, status):
-#        print(status)
+#    @pyqtSlot()
+#    def connectVehicle(self):
+#        self.Vehicle_thread_connect.start()
+#
+    @pyqtSlot()
+    def readAndWriteDroneKitData(self):
+        self.vehicleWriteDataThread.start()
+#        
+#    @pyqtSlot()
+#    def closeVehicle(self):
+#        self.Vehicle_thread_close.start()
+    
 
-#    def pixInfo(self): # TODO: methods to handle EXIF processing and calculations
-#        self.viewer.toggleDragMode()
+    def pixInfo(self, pos): # TODO: methods to handle EXIF processing and calculations, read MP and GPS data
+#        gpsData = # TODO: use the gpsData time_usec to match MP data for altitude and yaw at near trigger time
+        
+#        altitude = 
+#        yaw = 
+        
+        exif = self.getEXIF() # returns orientation, AOVx, AOVy, imgW, imgH
+        distReal = array([(2*altitude)/cos(exif.angleOfViewX/2), (2*altitude)/cos(exif.angleOfViewY/2)])
+        scale = array([distReal[0]/exif.imgW, distReal[1]/exif.imgH])
+        offsetTarget = array([scale[0]*self.pixelX, scale[1]*self.pixelY])
+        mapRealtoCamera = array([cos(yaw), -sin(yaw)], [sin(yaw), cos(yaw)])
+        
+        posReal = mapRealtoCamera.dot(offsetTarget)
+        targetGPS = array([posReal[0]/gpsData, posReal[1]/gpsData])
+        
+        return targetGPS
+#        self.viewer.toggleDragMode()vehicleCloseThread
 #        print(self.viewer.getExif())
 #        print('Frame #: %d' % self.viewer.imgNumber)
 #        self.readLog.readAttitude()
@@ -354,14 +417,15 @@ class MainWindow(QMainWindow):
         self.viewer.toggleDragMode()
         if self.viewer.dragMode()  == QGraphicsView.NoDrag:
             self.editPixInfo.setText('{0:.0f}, {1:.0f}'.format(pos.x(),pos.y()))
+            self.pixelX = pos.x()
+            self.pixelY = pos.y()
             self.viewer.toggleDragMode()
             
     def imageCrop(self, pos):
-        getPixel = self.editPixInfo.text().split(', ') # pixel location of clicked target
 #        getEXIF.getExif(self.viewer.imgPath, self.viewer.imgList, self.viewer.imgNumber, getPixel[0], getPixel[1]) #TODO: fix the index out of range error
         self.getUserInputInfo()
         self.viewer.saveCropEvent()
-        
+
     def getUserInputInfo(self):
         self.getAlphanumeric = self.editUserInput.text()
         self.getAlphanumericColor = self.editUserInputAlphanumericColor.text()
@@ -381,9 +445,42 @@ class MainWindow(QMainWindow):
         print(self.getOrientation)
     
     def loadImage(self, viewer):
-#        print(self.viewer.imgList)
         self.viewer.setPhoto(QPixmap(self.viewer.imgPath + self.viewer.imgList[self.viewer.imgNumber]))
         
+    def getEXIF(self, viewer):
+        image = Image.open(self.imgPath + self.imgList[self.imgNumber])
+        exifData = image._getexif()
+        orientation = 0
+    #    dateTime    = 0.0
+        imgWidth    = 0
+        imgHeight   = 0
+        focalLen    = 0.0    # focal length in mm
+        angleOfViewX = 0.0 # AOV along the width of the sensor (Sony A6000)
+        angleOfViewY = 0.0 # AOV along the height of the sensor (Sony A6000)
+        for tag, value in exifData.items():
+            if ExifTags.TAGS.get(tag)  == 'Orientation':
+                orientation = value
+            elif ExifTags.TAGS.get(tag) == 'SubsecTimeDigitized':
+    #            print(value)
+                pass
+            elif ExifTags.TAGS.get(tag) == 'DateTime':
+                pass
+    #            print('%s = %s' % (ExifTags.TAGS.get(tag), value))
+            elif ExifTags.TAGS.get(tag) == 'FocalLength':
+                focalLen = value[0]/value[1]
+                angleOfViewX = 2*arctan(23.5/(2*focalLen))*(180/pi)
+                angleOfViewY = 2*arctan(15.6/(2*focalLen))*(180/pi)
+            elif ExifTags.TAGS.get(tag) == 'ExifImageWidth':
+                imgWidth = value
+            elif ExifTags.TAGS.get(tag) == 'ExifImageHeight':
+                imgHeight = value
+            elif ExifTags.TAGS.get(tag) == 'ExposureTime':
+                pass
+            elif ExifTags.TAGS.get(tag) == 'ISOSpeedRatings':
+                pass
+            
+        return orientation, angleOfViewX, angleOfViewY, imgWidth, imgHeight        
+    
     # Receive and display the signal when cropped pixmap is created
     @pyqtSlot(QPixmap)
     def showProcessedTarget(self, pixmap):
@@ -408,6 +505,6 @@ if __name__ == '__main__':
     window.setStyleSheet("QMainWindow { background: rgb(81,40,136) }")
     window.resize(800, 500)
     window.showMaximized()
-    window.show()   
+    window.show()    
     window.start()
     app.exec_()
