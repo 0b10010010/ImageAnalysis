@@ -15,8 +15,6 @@ from PyQt5.QtCore import pyqtSlot, Qt, QThread, QTimer, QT_VERSION_STR, PYQT_VER
 from PyQt5.QtGui import QPixmap, QKeySequence, QIcon
 from PhotoViewer import PhotoViewer
 #from ReadMissionPlannerData import ReadMPDataWorker
-from ReadDroneKitData import ReadDroneKitDataWorker
-from threading import Thread
 # TODO: using EXIF orientation number rotate the target image
 from PIL import Image, ExifTags
 from numpy import sin, cos, tan, arctan, pi, array, empty
@@ -71,7 +69,6 @@ class MainWindow(QMainWindow):
 #        super(MainWindow, self).__init__(parent)
         super().__init__()
         self.viewer = PhotoViewer(self)
-#        self.dronekit = ReadDroneKitDataWorker()
 #        self.readLog = ReadTelemetryLog()
         
         self.flightNumber = 0
@@ -123,9 +120,7 @@ class MainWindow(QMainWindow):
         self.btnCamTrig.setSizePolicy(toolButtonSizePolicy)
         self.btnCamTrig.setText('Start Triggering Camera')
         self.btnCamTrig.clicked.connect(self.btnCamTrigHandler)
-#        self.btnCamTrig.clicked.connect(self.readAndWriteMPData)
-#        self.btnCamTrig.clicked.connect(self.readAndWriteDroneKitData)
-        
+#        self.btnCamTrig.clicked.connect(self.readAndWriteMPData)        
 
         # TODO: when trigger button gets pressed create folder and put images there
         
@@ -305,40 +300,18 @@ class MainWindow(QMainWindow):
         self.sendLinuxCmd = CamTrigWorker.CamTrigWorker()
         self.sendLinuxCmd2 = CamTrigWorker.CamTrigWorker()
         
-#        self.Vehicle = ReadDroneKitDataWorker()
-        # connect to the vehicle using dronekit worker class
-        self.vehicle = ReadDroneKitDataWorker()
-        self.vehicleConnectThread =  Thread(target=self.vehicle.connectToVehicle())
-        self.vehicleConnectThread.daemon = True
-        self.vehicleWriteDataThread = Thread(target=self.vehicle.readAndWriteToFile_callback(self.vehicle))
-        self.vehicleWriteDataThread.daemon = True
-        self.vehicleCloseThread = Thread(target=self.vehicle.closeVehicle())
-        
-#        self.vehicleThread.start()
-        
         # Instantiate Thread Objects
         self.sendLinuxCmd_thread_startCamTrig = QThread()
         self.sendLinuxCmd_thread_detectCam = QThread()
-        
-#        self.Vehicle_thread_connect = QThread()
-#        self.Vehicle_thread_close = QThread()
-#        self.Vehicle_thread_writeToFile = QThread()
         
         # Move Worker Objs to Thread
         self.sendLinuxCmd.moveToThread(self.sendLinuxCmd_thread_startCamTrig)
         self.sendLinuxCmd2.moveToThread(self.sendLinuxCmd_thread_detectCam)
         
-#        self.Vehicle.moveToThread(self.Vehicle_thread_connect)
-#        self.Vehicle.moveToThread(self.Vehicle_thread_writeToFile)
-#        self.Vehicle.moveToThread(self.Vehicle_thread_close)
-        
         # Connect signals when threads start
         self.sendLinuxCmd_thread_startCamTrig.started.connect(self.sendLinuxCmd.sendMkdirCmd)
         self.sendLinuxCmd_thread_detectCam.started.connect(self.sendLinuxCmd2.sendDetCmd)
-        
-#        self.Vehicle_thread_connect.started.connect(self.Vehicle.connectToVehicle)
-#        self.Vehicle_thread_writeToFile.started.connect(self.Vehicle.readAndWriteToFile)
-#        self.Vehicle_thread_close.started.connect(self.Vehicle.closeVehicle)
+
 #        self.sendLinuxCmd.respReady.connect(self.printStatus)
         
         # For target localization
@@ -370,24 +343,7 @@ class MainWindow(QMainWindow):
         else:
             self.btnCamTrig.setText('Start Triggering Camera')
             self.sendLinuxCmd.cancelTrigCmd()
-            self.sendLinuxCmd.finishedTriggering.connect(self.sendLinuxCmd_thread_startCamTrig.quit)      
-    
-#    @pyqtSlot()
-#    def readAndWriteMPData(self):
-#        ReadMPDataWorker()
-            
-#    @pyqtSlot()
-#    def connectVehicle(self):
-#        self.Vehicle_thread_connect.start()
-#
-    @pyqtSlot()
-    def readAndWriteDroneKitData(self):
-        self.vehicleWriteDataThread.start()
-#        
-#    @pyqtSlot()
-#    def closeVehicle(self):
-#        self.Vehicle_thread_close.start()
-    
+            self.sendLinuxCmd.finishedTriggering.connect(self.sendLinuxCmd_thread_startCamTrig.quit)    
 
     def pixInfo(self, pos): # TODO: methods to handle EXIF processing and calculations, read MP and GPS data
 #        gpsData = # TODO: use the gpsData time_usec to match MP data for altitude and yaw at near trigger time
