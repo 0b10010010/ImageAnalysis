@@ -13,6 +13,7 @@ https://diydrones.com/forum/topics/forwarding-telemetry-data-not-the-mavlink-str
 This python script should run on the GCS computer
 """
 
+<<<<<<< HEAD
 import urllib.request, json, threading
 from time import sleep
 
@@ -65,3 +66,20 @@ class ReadMPDataWorker(object):
 #    r = ReadMPDataWorker()
 #    thread = threading.Thread(target=r.readAndWriteToFile())
 #    thread.start()
+=======
+import requests
+from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
+
+class CamTrigWorker(QObject):
+    # Use IP address of computer that's running mission planner:
+    # 192.168.15.#:56781/mavlink/ where # should be the respective machine's IP
+    # Refer to the following webpage
+    # https://diydrones.com/forum/topics/forwarding-telemetry-data-not-the-mavlink-stream-from-mission
+    def __init__(self):
+        super().__init__()
+        self.MPURL = 'http://MP_IPADDRESS/mavlink/' # TODO: Change this to respective IP Address of MP laptop
+
+    @pyqtSlot
+    def ReadMPMavlink():
+        pass
+>>>>>>> 0d4d958c2f5f37adf4f1861d3b7e2ab8208289a2
