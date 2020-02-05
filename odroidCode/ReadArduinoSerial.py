@@ -11,6 +11,10 @@ This python script should run on the onboard computer
 import serial, threading
 
 class ReadArduinoSerialWorker():
+    '''
+        Read serial data from the Arduino onboard via USB and save to a text
+        file    
+    '''
     def __init__(self):
         self.port = '/dev/ttyUSB1' #TODO: Change this port accordingly
         self.baud = 115200
@@ -29,5 +33,8 @@ class ReadArduinoSerialWorker():
 # run infinitely in the background on Odroid
 if __name__ == '__main__':
     r = ReadArduinoSerialWorker()
-    thread = threading.Thread(target=r.readSerialAndWriteToFile())
-    thread.start()
+    r.readSerialAndWriteToFile()
+    # TODO: threading might not be necessary when running on terminal as a background
+    #       processing
+#    thread = threading.Thread(target=r.readSerialAndWriteToFile())
+#    thread.start()

@@ -6,8 +6,7 @@ Created on Sat Jan 19 12:49:01 2019
 @author: Alex Kim
 """
 
-import sys, platform, getEXIF, CamTrigWorker
-#from os import path
+import sys, platform, CamTrigWorker
 from PyQt5.QtWidgets import (QMainWindow, QApplication, QDialog, QLineEdit, 
                              QVBoxLayout, QAction, QSizePolicy, QHBoxLayout,
                              QGridLayout, QShortcut, QGraphicsView, QLabel,
@@ -15,7 +14,10 @@ from PyQt5.QtWidgets import (QMainWindow, QApplication, QDialog, QLineEdit,
 from PyQt5.QtCore import pyqtSlot, Qt, QThread, QTimer, QT_VERSION_STR, PYQT_VERSION_STR
 from PyQt5.QtGui import QPixmap, QKeySequence, QIcon
 from PhotoViewer import PhotoViewer
+#from ReadMissionPlannerData import ReadMPDataWorker
 # TODO: using EXIF orientation number rotate the target image
+from PIL import Image, ExifTags
+from numpy import sin, cos, tan, arctan, pi, array, empty
 
 ###############################################################################
 # OBC: Onboard computer (Odroid XU4)
@@ -75,7 +77,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle('Team Spycat Image Analysis 1.0')
         
         # Add an Icon
-        self.setWindowIcon(QIcon('airport.svg'))
+        self.setWindowIcon(QIcon('icon/airport.svg'))
         
         #######################################################################
         # ADD SHORTCUTS
@@ -118,6 +120,7 @@ class MainWindow(QMainWindow):
         self.btnCamTrig.setSizePolicy(toolButtonSizePolicy)
         self.btnCamTrig.setText('Start Triggering Camera')
         self.btnCamTrig.clicked.connect(self.btnCamTrigHandler)
+#        self.btnCamTrig.clicked.connect(self.readAndWriteMPData)        
 
         # TODO: when trigger button gets pressed create folder and put images there
         
@@ -130,7 +133,7 @@ class MainWindow(QMainWindow):
         self.btnLoad.clicked.connect(self.loadImage)
         
         # Display Information
-        self.loadedImg = QLabel('<b>Frame #:</b>')
+        self.loadedImg = QLabel('<b>Frame #:</b>')                          
         self.loadedImg.setStyleSheet("QLabel { color: rgb(255,255,255)}")                                
         self.loadedImg.setFixedWidth(100)
         self.loadedImgNumber = QLineEdit(self)
@@ -138,7 +141,7 @@ class MainWindow(QMainWindow):
         self.loadedImgNumber.setFixedWidth(100)
         self.loadedImgNumber.setText('%d' %self.viewer.imgNumber)
         self.viewer.keyPressed.connect(self.keyPress)
-
+        
         # Button to change from drag/pan to getting pixel info
         self.btnPixInfo = QLabel(self)
         self.btnPixInfo.setText('<b>Pixel Info:</b>')
@@ -182,7 +185,24 @@ class MainWindow(QMainWindow):
         self.cropImage.setSizePolicy(toolButtonSizePolicy)
         self.cropImage.setText('Crop and Process')
         self.cropImage.clicked.connect(self.imageCrop)
+        self.cropImage.clicked.connect(self.pixInfo)
 #        self.cropImage.clicked.connect(self.readLog.transform)
+        
+        # Display VFR HUD Items
+        self.latitude = QLabel('<b>Latitude:</b>')
+        self.latitude.setStyleSheet("QLabel { color: rgb(255,255,255)}")                                
+        self.latitude.setFixedWidth(100)
+        self.latitudeValue = QLineEdit(self)
+        self.latitudeValue.setReadOnly(True)
+        self.latitudeValue.setFixedWidth(100)
+        self.latitudeValue.setText('{}'.format(self.viewer.imgNumber))
+        self.longitude = QLabel('<b>Longitude:</b>')
+        self.longitude.setStyleSheet("QLabel { color: rgb(255,255,255)}")                                
+        self.longitude.setFixedWidth(100)
+        self.longitudeValue = QLineEdit(self)
+        self.longitudeValue.setReadOnly(True)
+        self.longitudeValue.setFixedWidth(100)
+        self.longitudeValue.setText('{}'.format(self.viewer.imgNumber))        
         
         # Display the last processed target image
         self.processedTargetLabel = QLabel(self)
@@ -219,7 +239,7 @@ class MainWindow(QMainWindow):
         Imglayout = QHBoxLayout()
         Imglayout.addWidget(self.viewer)
 
-        # Image Information
+        # Image Information Grid
         ImgInfo = QGridLayout()
         ImgInfo.addWidget(self.loadedImg, 0, 0)
         ImgInfo.addWidget(self.loadedImgNumber, 0, 1)
@@ -236,6 +256,17 @@ class MainWindow(QMainWindow):
         ImgInfo.addWidget(self.userInputOrientation, 6, 0)
         ImgInfo.addWidget(self.editUserInputOrientation, 6, 1)
         
+        # VFR HUD Information Grid
+        VFR_HUD = QGridLayout()
+        VFR_HUD.addWidget(self.latitude, 0, 0)
+        VFR_HUD.addWidget(self.latitudeValue, 0, 1)
+        VFR_HUD.addWidget(self.longitude, 1, 0)
+        VFR_HUD.addWidget(self.longitudeValue, 1, 1)
+        VFR_HUD.addWidget(self.userInput, 2, 0)
+        VFR_HUD.addWidget(self.editUserInput, 2, 1)
+        VFR_HUD.addWidget(self.userInputAlphanumericColor, 3, 0)
+        VFR_HUD.addWidget(self.editUserInputAlphanumericColor, 3, 1)        
+
         # Buttons layout
         Btnlayout = QVBoxLayout()
         Btnlayout.addWidget(self.btnDetectCam)
@@ -243,6 +274,7 @@ class MainWindow(QMainWindow):
         Btnlayout.addWidget(self.btnLoad)
         Btnlayout.addLayout(ImgInfo)
         Btnlayout.addWidget(self.cropImage)
+        Btnlayout.addLayout(VFR_HUD)
         Btnlayout.addStretch(1)
         # Add the last processed target image
         Btnlayout.addLayout(Target)
@@ -261,7 +293,7 @@ class MainWindow(QMainWindow):
         #######################################################################
         # QTimer for updating image directory with new images taken
         self.timer = QTimer(self)
-        self.timer.setInterval(3000) # update interval in ms (3 sec)
+        self.timer.setInterval(1500) # update interval in ms (1.5 sec)
         self.timer.timeout.connect(self.updateImgDir)
 
         # Instantiate Worker Objects
@@ -279,8 +311,12 @@ class MainWindow(QMainWindow):
         # Connect signals when threads start
         self.sendLinuxCmd_thread_startCamTrig.started.connect(self.sendLinuxCmd.sendMkdirCmd)
         self.sendLinuxCmd_thread_detectCam.started.connect(self.sendLinuxCmd2.sendDetCmd)
+
+#        self.sendLinuxCmd.respReady.connect(self.printStatus)
         
-        self.sendLinuxCmd.respReady.connect(self.printStatus)
+        # For target localization
+        self.pixelX = 0
+        self.pixelY = 0
         
     ###########################################################################
     # Member Methods
@@ -307,34 +343,45 @@ class MainWindow(QMainWindow):
         else:
             self.btnCamTrig.setText('Start Triggering Camera')
             self.sendLinuxCmd.cancelTrigCmd()
-            self.sendLinuxCmd.finishedTriggering.connect(self.sendLinuxCmd_thread_startCamTrig.quit)
-            
-    # TODO: figure out if there's a way to print triggering feedback from OBC
-    @pyqtSlot('PyQt_PyObject')
-    def printStatus(self, status):
-        print(status)
+            self.sendLinuxCmd.finishedTriggering.connect(self.sendLinuxCmd_thread_startCamTrig.quit)    
 
-#    def pixInfo(self): # TODO: methods to handle EXIF processing and calculations
-#        self.viewer.toggleDragMode()
+    def pixInfo(self, pos): # TODO: methods to handle EXIF processing and calculations, read MP and GPS data
+#        gpsData = # TODO: use the gpsData time_usec to match MP data for altitude and yaw at near trigger time
+        
+#        altitude = 
+#        yaw = 
+        
+        exif = self.getEXIF() # returns orientation, AOVx, AOVy, imgW, imgH
+        distReal = array([(2*altitude)/cos(exif.angleOfViewX/2), (2*altitude)/cos(exif.angleOfViewY/2)])
+        scale = array([distReal[0]/exif.imgW, distReal[1]/exif.imgH])
+        offsetTarget = array([scale[0]*self.pixelX, scale[1]*self.pixelY])
+        mapRealtoCamera = array([cos(yaw), -sin(yaw)], [sin(yaw), cos(yaw)])
+        
+        posReal = mapRealtoCamera.dot(offsetTarget)
+        targetGPS = array([posReal[0]/gpsData, posReal[1]/gpsData])
+        
+        return targetGPS
+#        self.viewer.toggleDragMode()vehicleCloseThread
 #        print(self.viewer.getExif())
 #        print('Frame #: %d' % self.viewer.imgNumber)
 #        self.readLog.readAttitude()
         
     def keyPress(self, imgNumber):
-        self.loadedImgNumber.setText('%d' % imgNumber)
+        self.loadedImgNumber.setText('{}'.format(imgNumber))
 
     def photoClick(self, pos):
         self.viewer.toggleDragMode()
         if self.viewer.dragMode()  == QGraphicsView.NoDrag:
-            self.editPixInfo.setText('%d, %d' % (pos.x(), pos.y()))
+            self.editPixInfo.setText('{0:.0f}, {1:.0f}'.format(pos.x(),pos.y()))
+            self.pixelX = pos.x()
+            self.pixelY = pos.y()
             self.viewer.toggleDragMode()
             
-    def imageCrop(self):
-        getPixel = self.editPixInfo.text().split(', ') # pixel location of clicked target
+    def imageCrop(self, pos):
 #        getEXIF.getExif(self.viewer.imgPath, self.viewer.imgList, self.viewer.imgNumber, getPixel[0], getPixel[1]) #TODO: fix the index out of range error
         self.getUserInputInfo()
         self.viewer.saveCropEvent()
-        
+
     def getUserInputInfo(self):
         self.getAlphanumeric = self.editUserInput.text()
         self.getAlphanumericColor = self.editUserInputAlphanumericColor.text()
@@ -346,6 +393,7 @@ class MainWindow(QMainWindow):
         self.editUserInputShape.clear()
         self.editUserInputShapeColor.clear()
         self.editUserInputOrientation.clear()
+        # TODO: instead of printing pass the reference for sending to interop
         print(self.getAlphanumeric)
         print(self.getAlphanumericColor)
         print(self.getShape)
@@ -353,9 +401,42 @@ class MainWindow(QMainWindow):
         print(self.getOrientation)
     
     def loadImage(self, viewer):
-#        print(self.viewer.imgList)
         self.viewer.setPhoto(QPixmap(self.viewer.imgPath + self.viewer.imgList[self.viewer.imgNumber]))
         
+    def getEXIF(self, viewer):
+        image = Image.open(self.imgPath + self.imgList[self.imgNumber])
+        exifData = image._getexif()
+        orientation = 0
+    #    dateTime    = 0.0
+        imgWidth    = 0
+        imgHeight   = 0
+        focalLen    = 0.0    # focal length in mm
+        angleOfViewX = 0.0 # AOV along the width of the sensor (Sony A6000)
+        angleOfViewY = 0.0 # AOV along the height of the sensor (Sony A6000)
+        for tag, value in exifData.items():
+            if ExifTags.TAGS.get(tag)  == 'Orientation':
+                orientation = value
+            elif ExifTags.TAGS.get(tag) == 'SubsecTimeDigitized':
+    #            print(value)
+                pass
+            elif ExifTags.TAGS.get(tag) == 'DateTime':
+                pass
+    #            print('%s = %s' % (ExifTags.TAGS.get(tag), value))
+            elif ExifTags.TAGS.get(tag) == 'FocalLength':
+                focalLen = value[0]/value[1]
+                angleOfViewX = 2*arctan(23.5/(2*focalLen))*(180/pi)
+                angleOfViewY = 2*arctan(15.6/(2*focalLen))*(180/pi)
+            elif ExifTags.TAGS.get(tag) == 'ExifImageWidth':
+                imgWidth = value
+            elif ExifTags.TAGS.get(tag) == 'ExifImageHeight':
+                imgHeight = value
+            elif ExifTags.TAGS.get(tag) == 'ExposureTime':
+                pass
+            elif ExifTags.TAGS.get(tag) == 'ISOSpeedRatings':
+                pass
+            
+        return orientation, angleOfViewX, angleOfViewY, imgWidth, imgHeight        
+    
     # Receive and display the signal when cropped pixmap is created
     @pyqtSlot(QPixmap)
     def showProcessedTarget(self, pixmap):
@@ -380,6 +461,6 @@ if __name__ == '__main__':
     window.setStyleSheet("QMainWindow { background: rgb(81,40,136) }")
     window.resize(800, 500)
     window.showMaximized()
-    window.show()   
+    window.show()    
     window.start()
     app.exec_()
