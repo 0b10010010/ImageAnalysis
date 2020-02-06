@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import (QMainWindow, QApplication, QDialog, QLineEdit,
 from PyQt5.QtCore import pyqtSlot, Qt, QThread, QTimer, QT_VERSION_STR, PYQT_VERSION_STR
 from PyQt5.QtGui import QPixmap, QKeySequence, QIcon
 from PhotoViewer import PhotoViewer
-#from ReadMissionPlannerData import ReadMPDataWorker
+from ReadMissionPlannerData import ReadMPDataWorker
 # TODO: using EXIF orientation number rotate the target image
 from PIL import Image, ExifTags
 from numpy import sin, cos, tan, arctan, pi, array, empty
@@ -69,6 +69,7 @@ class MainWindow(QMainWindow):
 #        super(MainWindow, self).__init__(parent)
         super().__init__()
         self.viewer = PhotoViewer(self)
+        self.reader = ReadMPDataWorker()
 #        self.readLog = ReadTelemetryLog()
         
         self.flightNumber = 0
@@ -87,7 +88,7 @@ class MainWindow(QMainWindow):
 
         #######################################################################
         # ADD MENU ITEMS
-        #######################################################################
+        ####################################################################### 
         # Create the File menu
         self.menuFile = self.menuBar().addMenu("&File")
         self.actionQuit = QAction("&Quit", self)
@@ -344,27 +345,23 @@ class MainWindow(QMainWindow):
             self.btnCamTrig.setText('Start Triggering Camera')
             self.sendLinuxCmd.cancelTrigCmd()
             self.sendLinuxCmd.finishedTriggering.connect(self.sendLinuxCmd_thread_startCamTrig.quit)    
-
+    
+    # TODO: wrap this method in QThread to display within GUI
     def pixInfo(self, pos): # TODO: methods to handle EXIF processing and calculations, read MP and GPS data
-#        gpsData = # TODO: use the gpsData time_usec to match MP data for altitude and yaw at near trigger time
         
-#        altitude = 
-#        yaw = 
+        altitude, heading, latitude, longitude = self.reader.readFromGPSData(self.viewer.imgNumber)
         
         exif = self.getEXIF() # returns orientation, AOVx, AOVy, imgW, imgH
         distReal = array([(2*altitude)/cos(exif.angleOfViewX/2), (2*altitude)/cos(exif.angleOfViewY/2)])
         scale = array([distReal[0]/exif.imgW, distReal[1]/exif.imgH])
         offsetTarget = array([scale[0]*self.pixelX, scale[1]*self.pixelY])
-        mapRealtoCamera = array([cos(yaw), -sin(yaw)], [sin(yaw), cos(yaw)])
+        # TODO: attach the camera aligned with the Pixhawk's direction for consistent heading
+        mapRealtoCamera = array([cos(heading), -sin(heading)], [sin(heading), cos(heading)])
         
         posReal = mapRealtoCamera.dot(offsetTarget)
-        targetGPS = array([posReal[0]/gpsData, posReal[1]/gpsData])
+        targetGPS = array([posReal[0]/longitude, posReal[1]/latitude])
         
         return targetGPS
-#        self.viewer.toggleDragMode()vehicleCloseThread
-#        print(self.viewer.getExif())
-#        print('Frame #: %d' % self.viewer.imgNumber)
-#        self.readLog.readAttitude()
         
     def keyPress(self, imgNumber):
         self.loadedImgNumber.setText('{}'.format(imgNumber))
