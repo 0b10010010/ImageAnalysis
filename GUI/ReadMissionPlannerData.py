@@ -26,16 +26,16 @@ class ReadMPDataWorker(object):
         self.GPSData = 'FlightData/GPSData.txt'
         self.MPMavLinkData = [] # Data from MAVLink received from AutoPilot's MP
         self.timeDiff = 500000 # given time difference limit for matching trigger time # TODO: find this limit
-    
+        self.lineNumber = 1
+        
     def readFromGPSData(self, imgNumber):
         with open(self.GPSData) as file:
-            lineNumber = 1
             for line in file:
-                if (lineNumber == imgNumber+1): # imgNumber index starts at 0
+                if (self.lineNumber == imgNumber+1): # imgNumber index starts at 0
                     lists = [lines.strip() for lines in line.split(',')]
                     timeValue = lists[1][5:]
                     dateTime = datetime.strptime(timeValue[:-3], '%Y/%m/%d %H:%M:%S.%f')           # convert to usec resolution
-                    timeStamp = dateTime.replace(tzinfo=datetime.timezone.utc).timestamp()*1000000 # time in epoch (usec)
+                    timeStamp = dateTime.replace(tzinfo=timezone.utc).timestamp()*1000000 # time in epoch (usec)
                     self.MPMavLinkData.append(self.readFromMPData(timeStamp)) # Data matching GPS time from MP                
                     altitude = self.readFromMPData(timeStamp)[1]
                     heading = self.readFromMPData(timeStamp)[2]
@@ -49,7 +49,7 @@ class ReadMPDataWorker(object):
                     # self.latMP.append(self.readFromMPData(timeStamp)[3])
                     # self.lonMP.append(self.readFromMPData(timeStamp)[4])
                     return altitude, heading, lat, lon
-                lineNumber += 1
+                self.lineNumber += 1
     
     def readFromMPData(self, targetTime):
         '''
