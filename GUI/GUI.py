@@ -6,7 +6,7 @@ Created on Sat Jan 19 12:49:01 2019
 @author: Alex Kim
 """
 
-import sys, platform, CamTrigWorker
+import sys, platform, CamTrigWorker, threading
 from PyQt5.QtWidgets import (QMainWindow, QApplication, QDialog, QLineEdit, 
                              QVBoxLayout, QAction, QSizePolicy, QHBoxLayout,
                              QGridLayout, QShortcut, QGraphicsView, QLabel,
@@ -15,6 +15,7 @@ from PyQt5.QtCore import pyqtSlot, Qt, QThread, QTimer, QT_VERSION_STR, PYQT_VER
 from PyQt5.QtGui import QPixmap, QKeySequence, QIcon
 from PhotoViewer import PhotoViewer
 from ReadMissionPlannerData import ReadMPDataWorker
+from ReadDroneKitData import DroneKitWorker
 # TODO: using EXIF orientation number rotate the target image
 from PIL import Image, ExifTags
 from numpy import sin, cos, tan, arctan, pi, array, empty
@@ -23,14 +24,6 @@ from numpy import sin, cos, tan, arctan, pi, array, empty
 # OBC: Onboard computer (Odroid XU4)
 # GCS: Ground Control Station (Image Analysis and Mission Planner PC)
 ###############################################################################
-
-'''
-Basic application workflow:
-    GUI runs on the GCS computer.
-    Camera control commands are sent from GCS to OBC over 5GHz
-    Pictures will be taken at three second interval and save to shared directory
-    between the air and ground.
-'''
 
 ###############################################################################
 ###############################################################################
@@ -62,6 +55,13 @@ Basic application workflow:
 ###############################################################################
 ###############################################################################            
 class MainWindow(QMainWindow):
+    '''
+        Basic application workflow:
+        GUI runs on the GCS computer.
+        Camera control commands are sent from GCS to OBC over 5GHz
+        Pictures will be taken at three second interval and save to shared directory
+        between the air and ground.
+    '''
     def __init__(self, parent=None):
         '''
             MainWindow Object to put together GUI layouts and its Widgets
@@ -71,6 +71,7 @@ class MainWindow(QMainWindow):
         self.viewer = PhotoViewer(self)
         self.reader = ReadMPDataWorker()
 #        self.readLog = ReadTelemetryLog()
+        self.dronekit = DroneKitWorker()
         # For target localization
         self.pixelX = 0
         self.pixelY = 0
@@ -115,6 +116,7 @@ class MainWindow(QMainWindow):
         self.btnDetectCam.setSizePolicy(toolButtonSizePolicy)
         self.btnDetectCam.setText('Detect Camera')
         self.btnDetectCam.clicked.connect(self.sendDetectCameraCommand)
+        self.btnDetectCam.clicked.connect(self.connectToVehicle) # TODO: this should have its own button to connect to the vehicle
 
         # 'Start Triggering Camera' button
         self.btnCamTrig = QToolButton(self)
@@ -333,7 +335,10 @@ class MainWindow(QMainWindow):
         # Connect signals when threads start
         self.sendLinuxCmd_thread_startCamTrig.started.connect(self.sendLinuxCmd.sendMkdirCmd)
         self.sendLinuxCmd_thread_detectCam.started.connect(self.sendLinuxCmd2.sendDetCmd)
-
+        
+        self.connectToVehicle_thread = QThread()
+        self.dronekit.moveToThread(self.connectToVehicle_thread)
+        self.connectToVehicle_thread.started.connect(self.dronekit.connectVehicle)
 #        self.sendLinuxCmd.respReady.connect(self.printStatus)
         
     ###########################################################################
@@ -352,7 +357,11 @@ class MainWindow(QMainWindow):
     @pyqtSlot()
     def sendDetectCameraCommand(self):
         self.sendLinuxCmd_thread_detectCam.start()
-    
+        
+    @pyqtSlot()
+    def connectToVehicle(self):
+        self.connectToVehicle_thread.start()
+
     @pyqtSlot()
     def btnCamTrigHandler(self):
         if self.btnCamTrig.isChecked():
