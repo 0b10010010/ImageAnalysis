@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import (QMainWindow, QApplication, QDialog, QLineEdit,
 from PyQt5.QtCore import pyqtSlot, Qt, QThread, QTimer, QT_VERSION_STR, PYQT_VERSION_STR
 from PyQt5.QtGui import QPixmap, QKeySequence, QIcon
 from PhotoViewer import PhotoViewer
-#from ReadMissionPlannerData import ReadMPDataWorker
+from ReadMissionPlannerData import ReadMPDataWorker
 # TODO: using EXIF orientation number rotate the target image
 from PIL import Image, ExifTags
 from numpy import sin, cos, tan, arctan, pi, array, empty
@@ -69,7 +69,11 @@ class MainWindow(QMainWindow):
 #        super(MainWindow, self).__init__(parent)
         super().__init__()
         self.viewer = PhotoViewer(self)
+        self.reader = ReadMPDataWorker()
 #        self.readLog = ReadTelemetryLog()
+        # For target localization
+        self.pixelX = 0
+        self.pixelY = 0
         
         self.flightNumber = 0
         
@@ -87,7 +91,7 @@ class MainWindow(QMainWindow):
 
         #######################################################################
         # ADD MENU ITEMS
-        #######################################################################
+        ####################################################################### 
         # Create the File menu
         self.menuFile = self.menuBar().addMenu("&File")
         self.actionQuit = QAction("&Quit", self)
@@ -189,20 +193,34 @@ class MainWindow(QMainWindow):
 #        self.cropImage.clicked.connect(self.readLog.transform)
         
         # Display VFR HUD Items
+        self.heading = QLabel('<b>Heading:</b>')
+        self.heading.setStyleSheet("QLabel { color: rgb(255,255,255)}")                                
+        self.heading.setFixedWidth(100)
+        self.headingValue = QLineEdit(self)
+        self.headingValue.setReadOnly(True)
+        self.headingValue.setFixedWidth(100)
+        self.headingValue.setText('{}'.format(0))
+        self.altitude = QLabel('<b>Altitude:</b>')
+        self.altitude.setStyleSheet("QLabel { color: rgb(255,255,255)}")                                
+        self.altitude.setFixedWidth(100)
+        self.altitudeValue = QLineEdit(self)
+        self.altitudeValue.setReadOnly(True)
+        self.altitudeValue.setFixedWidth(100)
+        self.altitudeValue.setText('{}'.format(0))      
         self.latitude = QLabel('<b>Latitude:</b>')
         self.latitude.setStyleSheet("QLabel { color: rgb(255,255,255)}")                                
         self.latitude.setFixedWidth(100)
         self.latitudeValue = QLineEdit(self)
         self.latitudeValue.setReadOnly(True)
         self.latitudeValue.setFixedWidth(100)
-        self.latitudeValue.setText('{}'.format(self.viewer.imgNumber))
+        self.latitudeValue.setText('{}'.format(0))
         self.longitude = QLabel('<b>Longitude:</b>')
         self.longitude.setStyleSheet("QLabel { color: rgb(255,255,255)}")                                
         self.longitude.setFixedWidth(100)
         self.longitudeValue = QLineEdit(self)
         self.longitudeValue.setReadOnly(True)
         self.longitudeValue.setFixedWidth(100)
-        self.longitudeValue.setText('{}'.format(self.viewer.imgNumber))        
+        self.longitudeValue.setText('{}'.format(0))        
         
         # Display the last processed target image
         self.processedTargetLabel = QLabel(self)
@@ -258,14 +276,18 @@ class MainWindow(QMainWindow):
         
         # VFR HUD Information Grid
         VFR_HUD = QGridLayout()
-        VFR_HUD.addWidget(self.latitude, 0, 0)
-        VFR_HUD.addWidget(self.latitudeValue, 0, 1)
-        VFR_HUD.addWidget(self.longitude, 1, 0)
-        VFR_HUD.addWidget(self.longitudeValue, 1, 1)
-        VFR_HUD.addWidget(self.userInput, 2, 0)
-        VFR_HUD.addWidget(self.editUserInput, 2, 1)
-        VFR_HUD.addWidget(self.userInputAlphanumericColor, 3, 0)
-        VFR_HUD.addWidget(self.editUserInputAlphanumericColor, 3, 1)        
+        VFR_HUD.addWidget(self.heading, 0, 0)
+        VFR_HUD.addWidget(self.headingValue, 0, 1)        
+        VFR_HUD.addWidget(self.altitude, 1, 0)
+        VFR_HUD.addWidget(self.altitudeValue, 1, 1)
+        VFR_HUD.addWidget(self.latitude, 2, 0)
+        VFR_HUD.addWidget(self.latitudeValue, 2, 1)
+        VFR_HUD.addWidget(self.longitude, 3, 0)
+        VFR_HUD.addWidget(self.longitudeValue, 3, 1)
+        VFR_HUD.addWidget(self.userInput, 4, 0)
+        VFR_HUD.addWidget(self.editUserInput, 4, 1)
+        VFR_HUD.addWidget(self.userInputAlphanumericColor, 5, 0)
+        VFR_HUD.addWidget(self.editUserInputAlphanumericColor, 5, 1)        
 
         # Buttons layout
         Btnlayout = QVBoxLayout()
@@ -314,10 +336,6 @@ class MainWindow(QMainWindow):
 
 #        self.sendLinuxCmd.respReady.connect(self.printStatus)
         
-        # For target localization
-        self.pixelX = 0
-        self.pixelY = 0
-        
     ###########################################################################
     # Member Methods
     ###########################################################################  
@@ -344,28 +362,27 @@ class MainWindow(QMainWindow):
             self.btnCamTrig.setText('Start Triggering Camera')
             self.sendLinuxCmd.cancelTrigCmd()
             self.sendLinuxCmd.finishedTriggering.connect(self.sendLinuxCmd_thread_startCamTrig.quit)    
-
+    
+    # TODO: wrap this method in QThread to display within GUI
     def pixInfo(self, pos): # TODO: methods to handle EXIF processing and calculations, read MP and GPS data
-#        gpsData = # TODO: use the gpsData time_usec to match MP data for altitude and yaw at near trigger time
-        
-#        altitude = 
-#        yaw = 
-        
-        exif = self.getEXIF() # returns orientation, AOVx, AOVy, imgW, imgH
-        distReal = array([(2*altitude)/cos(exif.angleOfViewX/2), (2*altitude)/cos(exif.angleOfViewY/2)])
-        scale = array([distReal[0]/exif.imgW, distReal[1]/exif.imgH])
+        altitude, heading, latitude, longitude = self.reader.readFromGPSData(self.viewer.imgNumber)        
+        orientation, angleOfViewX, angleOfViewY, imgW, imgH = self.getEXIF()
+
+        distReal = array([(2*altitude)/cos(angleOfViewX/2), (2*altitude)/cos(angleOfViewY/2)])
+        scale = array([distReal[0]/imgW, distReal[1]/imgH])
         offsetTarget = array([scale[0]*self.pixelX, scale[1]*self.pixelY])
-        mapRealtoCamera = array([cos(yaw), -sin(yaw)], [sin(yaw), cos(yaw)])
+        # TODO: attach the camera aligned with the Pixhawk's direction for consistent heading
+        mapRealtoCamera = array([cos(heading), -sin(heading)], [sin(heading), cos(heading)])
         
         posReal = mapRealtoCamera.dot(offsetTarget)
-        targetGPS = array([posReal[0]/gpsData, posReal[1]/gpsData])
+        targetGPS = array([posReal[0]/longitude, posReal[1]/latitude])
         
-        return targetGPS
-#        self.viewer.toggleDragMode()vehicleCloseThread
-#        print(self.viewer.getExif())
-#        print('Frame #: %d' % self.viewer.imgNumber)
-#        self.readLog.readAttitude()
-        
+        # display the target's info on GUI
+        self.headingValue.setText('{}'.format(heading))
+        self.altitudeValue.setText('{}'.format(altitude))
+        self.latitudeValue.setText('{}'.format(targetGPS[1]))
+        self.longitudeValue.setText('{}'.format(targetGPS[0]))
+    
     def keyPress(self, imgNumber):
         self.loadedImgNumber.setText('{}'.format(imgNumber))
 
@@ -400,11 +417,11 @@ class MainWindow(QMainWindow):
         print(self.getShapeColor)
         print(self.getOrientation)
     
-    def loadImage(self, viewer):
+    def loadImage(self):
         self.viewer.setPhoto(QPixmap(self.viewer.imgPath + self.viewer.imgList[self.viewer.imgNumber]))
         
-    def getEXIF(self, viewer):
-        image = Image.open(self.imgPath + self.imgList[self.imgNumber])
+    def getEXIF(self):
+        image = Image.open(self.viewer.imgPath + self.viewer.imgList[self.viewer.imgNumber])
         exifData = image._getexif()
         orientation = 0
     #    dateTime    = 0.0
