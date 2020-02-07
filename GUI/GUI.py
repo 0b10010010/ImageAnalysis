@@ -71,7 +71,7 @@ class MainWindow(QMainWindow):
         self.viewer = PhotoViewer(self)
         self.reader = ReadMPDataWorker()
 #        self.readLog = ReadTelemetryLog()
-        self.dronekit = DroneKitWorker()
+        
         # For target localization
         self.pixelX = 0
         self.pixelY = 0
@@ -109,14 +109,22 @@ class MainWindow(QMainWindow):
         # CREATE CENTRAL WIDGET
         #######################################################################
 
-        # Info Bar ############################################################        
+        # Info Bar ############################################################
+        toolButtonSizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        # 'Connect Vehicle' button
+        self.btnConnectVehicle = QToolButton(self)
+        self.btnConnectVehicle.setCheckable(True)
+        self.btnConnectVehicle.setStyleSheet("QToolButton {background-color: red}"
+                                      "QToolButton:checked {background-color: green}")
+        self.btnConnectVehicle.setSizePolicy(toolButtonSizePolicy)
+        self.btnConnectVehicle.setText('Connect Vehicle')
+        self.btnConnectVehicle.clicked.connect(self.btnConnectVehicleHandler)
+        
         # 'Detect Camera' button
         self.btnDetectCam = QToolButton(self)
-        toolButtonSizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         self.btnDetectCam.setSizePolicy(toolButtonSizePolicy)
         self.btnDetectCam.setText('Detect Camera')
         self.btnDetectCam.clicked.connect(self.sendDetectCameraCommand)
-        self.btnDetectCam.clicked.connect(self.connectToVehicle) # TODO: this should have its own button to connect to the vehicle
 
         # 'Start Triggering Camera' button
         self.btnCamTrig = QToolButton(self)
@@ -126,7 +134,7 @@ class MainWindow(QMainWindow):
         self.btnCamTrig.setSizePolicy(toolButtonSizePolicy)
         self.btnCamTrig.setText('Start Triggering Camera')
         self.btnCamTrig.clicked.connect(self.btnCamTrigHandler)
-#        self.btnCamTrig.clicked.connect(self.readAndWriteMPData)        
+#        self.btnCamTrig.clicked.connect(self.readAndWriteMPData)
 
         # TODO: when trigger button gets pressed create folder and put images there
         
@@ -293,6 +301,7 @@ class MainWindow(QMainWindow):
 
         # Buttons layout
         Btnlayout = QVBoxLayout()
+        Btnlayout.addWidget(self.btnConnectVehicle)
         Btnlayout.addWidget(self.btnDetectCam)
         Btnlayout.addWidget(self.btnCamTrig)
         Btnlayout.addWidget(self.btnLoad)
@@ -337,13 +346,16 @@ class MainWindow(QMainWindow):
         self.sendLinuxCmd_thread_detectCam.started.connect(self.sendLinuxCmd2.sendDetCmd)
         
         self.connectToVehicle_thread = QThread()
+        self.dronekit = DroneKitWorker()
         self.dronekit.moveToThread(self.connectToVehicle_thread)
         self.connectToVehicle_thread.started.connect(self.dronekit.connectVehicle)
+        self.dronekit.finishedConnecting.connect(self.handleConnectedState)
+        
 #        self.sendLinuxCmd.respReady.connect(self.printStatus)
         
     ###########################################################################
     # Member Methods
-    ###########################################################################  
+    ###########################################################################
     def start(self):
         # start QTimer thread for updating image directory
         self.timer.start()
@@ -357,10 +369,29 @@ class MainWindow(QMainWindow):
     @pyqtSlot()
     def sendDetectCameraCommand(self):
         self.sendLinuxCmd_thread_detectCam.start()
+    
+    @pyqtSlot()
+    def closeVehicle(self):
+        self.dronekit.vehicle.close()
+        self.connectToVehicle_thread.quit
         
     @pyqtSlot()
-    def connectToVehicle(self):
-        self.connectToVehicle_thread.start()
+    def handleConnectedState(self):
+        # if self.dronekit.status:
+        self.btnConnectVehicle.setText('Vehicle Connected')
+        self.btnConnectVehicle.setStyleSheet("QToolButton {background-color: green}")   
+    
+    @pyqtSlot()
+    def btnConnectVehicleHandler(self):
+        if self.btnConnectVehicle.isChecked():
+            self.btnConnectVehicle.setText('Vehicle Connecting...')
+            self.btnConnectVehicle.setStyleSheet("QToolButton {background-color: yellow}")
+            self.connectToVehicle_thread.start()
+        else:
+            # TODO: Add a popup window to ask the user one last time before closing connection with the vehicle
+            self.btnConnectVehicle.setText('Vehicle Disconnected')
+            self.btnConnectVehicle.setStyleSheet("QToolButton {background-color: red}")            
+            self.closeVehicle()
 
     @pyqtSlot()
     def btnCamTrigHandler(self):
@@ -370,8 +401,8 @@ class MainWindow(QMainWindow):
         else:
             self.btnCamTrig.setText('Start Triggering Camera')
             self.sendLinuxCmd.cancelTrigCmd()
-            self.sendLinuxCmd.finishedTriggering.connect(self.sendLinuxCmd_thread_startCamTrig.quit)    
-    
+            self.sendLinuxCmd.finishedTriggering.connect(self.sendLinuxCmd_thread_startCamTrig.quit)
+
     # TODO: wrap this method in QThread to display within GUI
     def pixInfo(self, pos): # TODO: methods to handle EXIF processing and calculations, read MP and GPS data
         altitude, heading, latitude, longitude = self.reader.readFromGPSData(self.viewer.imgNumber)        
