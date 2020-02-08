@@ -41,9 +41,9 @@ class PhotoViewer(QGraphicsView):
         self.setBackgroundBrush(QBrush(QColor(209,209,209)))
         self.setFrameShape(QFrame.NoFrame)
 #        self.imgPath = path.dirname(path.realpath(__file__)) + '/CamFeedbackTest/img/'
-        self.imgPath = '/home/spykat/Desktop/imgTargetDir/' # TODO: This is the shared dir between onboard computer and GCS
+         self.imgPath = '/home/spykat/Desktop/imgTargetDir/' # TODO: This is the shared dir between onboard computer and GCS
         # self.imgPath = '/home/spykat/Desktop/TestFlightDataBackUp/imgTargetDirBackUp/imgTargetDir/'
-        # self.imgPath = '/home/alexk/Desktop/Capture#1/'
+#        self.imgPath = '/home/alexk/Desktop/Capture#1/'
         self.imgList = listdir(self.imgPath)
         self.imgList.sort()
         self.listLim = len(self.imgList)
@@ -144,7 +144,7 @@ class PhotoViewer(QGraphicsView):
         self.cropQPixmap.save('ProcessedTargets/Obj{}.png'.format(self.imgNumber))
 #        self.cropQPixmap.save('Obj%d.jpg' %self.imgNumber)
         self.imgReady.emit(self.cropQPixmap) # emit signal that cropped img is ready
-        # TODO: save the target images to ProcessedTargets directory
+
         
     def keyPressEvent(self, event):
         key = event.key()
@@ -171,44 +171,3 @@ class PhotoViewer(QGraphicsView):
         self.imgList = listdir(self.imgPath)
         self.listLim = len(self.imgList)
         self.imgList.sort()
-        
-#    def getAttitude(self): # TODO: move to threading to reduce hanging
-#        attitudeData = '/home/spykat/Desktop/image-analysis/VFR_HUD.txt'
-#        with open(attitudeData) as f:
-#            if 'blabla' in f.read():
-#                print("true")
-    
-    #    def getExif(imgPath, imgList, imgNumber, pixelX, pixelY): # TODO: Create a dictionary instead of printing
-    def getEXIF(self):
-        image = Image.open(self.imgPath + self.imgList[self.imgNumber])
-        exifData = image._getexif()
-        orientation = 0
-    #    dateTime    = 0.0
-        imgWidth    = 0
-        imgHeight   = 0
-        focalLen    = 0.0    # focal length in mm
-        angleOfViewX = 0.0 # AOV along the width of the sensor (Sony A6000)
-        angleOfViewY = 0.0 # AOV along the height of the sensor (Sony A6000)
-        for tag, value in exifData.items():
-            if ExifTags.TAGS.get(tag)  == 'Orientation':
-                orientation = value
-            elif ExifTags.TAGS.get(tag) == 'SubsecTimeDigitized':
-    #            print(value)
-                pass
-            elif ExifTags.TAGS.get(tag) == 'DateTime':
-                pass
-    #            print('%s = %s' % (ExifTags.TAGS.get(tag), value))
-            elif ExifTags.TAGS.get(tag) == 'FocalLength':
-                focalLen = value[0]/value[1]
-                angleOfViewX = 2*arctan(23.5/(2*focalLen))*(180/pi)
-                angleOfViewY = 2*arctan(15.6/(2*focalLen))*(180/pi)
-            elif ExifTags.TAGS.get(tag) == 'ExifImageWidth':
-                imgWidth = value
-            elif ExifTags.TAGS.get(tag) == 'ExifImageHeight':
-                imgHeight = value
-            elif ExifTags.TAGS.get(tag) == 'ExposureTime':
-                pass
-            elif ExifTags.TAGS.get(tag) == 'ISOSpeedRatings':
-                pass
-            
-        return orientation, angleOfViewX, angleOfViewY, imgWidth, imgHeight
