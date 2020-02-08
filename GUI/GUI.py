@@ -5,8 +5,48 @@ Created on Sat Jan 19 12:49:01 2019
 
 @author: Alex Kim
 """
-
-import sys, platform, CamTrigWorker, threading
+###############################################################################
+# OBC: Onboard computer (Odroid XU4)
+# GCS: Ground Control Station (Image Analysis and Mission Planner PC)
+###############################################################################
+# __/\\\________/\\\_____/\\\\\\\\\\\____/\\\________/\\\_                           
+#  _\/\\\_____/\\\//____/\\\/////////\\\_\/\\\_______\/\\\_                          
+#   _\/\\\__/\\\//______\//\\\______\///__\/\\\_______\/\\\_                         
+#    _\/\\\\\\//\\\_______\////\\\_________\/\\\_______\/\\\_                        
+#     _\/\\\//_\//\\\_________\////\\\______\/\\\_______\/\\\_                       
+#      _\/\\\____\//\\\___________\////\\\___\/\\\_______\/\\\_                      
+#       _\/\\\_____\//\\\___/\\\______\//\\\__\//\\\______/\\\__                     
+#        _\/\\\______\//\\\_\///\\\\\\\\\\\/____\///\\\\\\\\\/___                    
+#         _\///________\///____\///////////________\/////////_____                   
+# _____/\\\\\\\\\\\____/\\\________/\\\_____/\\\\\\\\\________/\\\\\\\\\\\___        
+#  ___/\\\/////////\\\_\/\\\_______\/\\\___/\\\\\\\\\\\\\____/\\\/////////\\\_       
+#   __\//\\\______\///__\/\\\_______\/\\\__/\\\/////////\\\__\//\\\______\///__      
+#    ___\////\\\_________\/\\\_______\/\\\_\/\\\_______\/\\\___\////\\\_________     
+#     ______\////\\\______\/\\\_______\/\\\_\/\\\\\\\\\\\\\\\______\////\\\______    
+#      _________\////\\\___\/\\\_______\/\\\_\/\\\/////////\\\_________\////\\\___   
+#       __/\\\______\//\\\__\//\\\______/\\\__\/\\\_______\/\\\__/\\\______\//\\\__  
+#        _\///\\\\\\\\\\\/____\///\\\\\\\\\/___\/\\\_______\/\\\_\///\\\\\\\\\\\/___ 
+#         ___\///////////________\/////////_____\///________\///____\///////////_____
+# _____/\\\\\\\\\\\\__/\\\________/\\\__/\\\\\\\\\\\_        
+#  ___/\\\//////////__\/\\\_______\/\\\_\/////\\\///__       
+#   __/\\\_____________\/\\\_______\/\\\_____\/\\\_____      
+#    _\/\\\____/\\\\\\\_\/\\\_______\/\\\_____\/\\\_____     
+#     _\/\\\___\/////\\\_\/\\\_______\/\\\_____\/\\\_____    
+#      _\/\\\_______\/\\\_\/\\\_______\/\\\_____\/\\\_____   
+#       _\/\\\_______\/\\\_\//\\\______/\\\______\/\\\_____  
+#        _\//\\\\\\\\\\\\/___\///\\\\\\\\\/____/\\\\\\\\\\\_ 
+#         __\////////////_______\/////////_____\///////////__
+#
+#
+#
+# OBC: Onboard computer (Odroid XU4)
+# GCS: Ground Control Station (Image Analysis and Mission Planner PC)
+###############################################################################
+###############################################################################
+###############################################################################
+###############################################################################        
+# Import modules
+import sys, platform
 from PyQt5.QtWidgets import (QMainWindow, QApplication, QDialog, QLineEdit, 
                              QVBoxLayout, QAction, QSizePolicy, QHBoxLayout,
                              QGridLayout, QShortcut, QGraphicsView, QLabel,
@@ -15,45 +55,12 @@ from PyQt5.QtCore import pyqtSlot, Qt, QThread, QTimer, QT_VERSION_STR, PYQT_VER
 from PyQt5.QtGui import QPixmap, QKeySequence, QIcon
 from PhotoViewer import PhotoViewer
 from ReadMissionPlannerData import ReadMPDataWorker
-from ReadDroneKitData import DroneKitWorker
+from DroneKit import DroneKitWorker
+from CameraTriggerWorker import CamTrigWorker
 # TODO: using EXIF orientation number rotate the target image
 from PIL import Image, ExifTags
-from numpy import sin, cos, tan, arctan, pi, array, empty
-
-###############################################################################
-# OBC: Onboard computer (Odroid XU4)
-# GCS: Ground Control Station (Image Analysis and Mission Planner PC)
-###############################################################################
-
-###############################################################################
-###############################################################################
-###############################################################################
-# TODO: Read from GPSData.txt on OBC
-#class ReadTelemetryLog():
-#    def __init__(self):
-#        self.dict = {}
-#        self.infoByFrame = []
-#        self.lattitudes = []
-#        self.longitudes = []
-#        self.logFilePath = path.dirname(path.realpath(__file__)) + '/CamFeedbackTest/flight.txt'
-#        
-#    def readAttitude(self):
-#        with open(self.logFilePath, 'rt') as in_file:
-#            for line in in_file:
-##                self.infoByFrame.append(line.split(','))
-#                self.infoByFrame.append(line[39::])
-##                self.longitudes.append(line.)
-##        print(self.infoByFrame)
-#        for lines in self.infoByFrame:
-#            self.lattitudes.append(lines[76:86].split(',')[0])
-#        print(self.lattitudes[0])
-#        
-#    def transform():
-#        pass
+from numpy import sin, cos, arctan, pi, array#, tan, empty
     
-###############################################################################
-###############################################################################
-###############################################################################            
 class MainWindow(QMainWindow):
     '''
         Basic application workflow:
@@ -69,8 +76,6 @@ class MainWindow(QMainWindow):
 #        super(MainWindow, self).__init__(parent)
         super().__init__()
         self.viewer = PhotoViewer(self)
-        self.reader = ReadMPDataWorker()
-#        self.readLog = ReadTelemetryLog()
         
         # For target localization
         self.pixelX = 0
@@ -111,13 +116,14 @@ class MainWindow(QMainWindow):
 
         # Info Bar ############################################################
         toolButtonSizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        
         # 'Connect Vehicle' button
         self.btnConnectVehicle = QToolButton(self)
-        self.btnConnectVehicle.setCheckable(True)
-        self.btnConnectVehicle.setStyleSheet("QToolButton {background-color: red}"
-                                      "QToolButton:checked {background-color: green}")
+        # self.btnConnectVehicle.setCheckable(True)
+        self.btnConnectVehicle.setStyleSheet("QToolButton {background-color: red}")
         self.btnConnectVehicle.setSizePolicy(toolButtonSizePolicy)
         self.btnConnectVehicle.setText('Connect Vehicle')
+        self.vehicleState = 0
         self.btnConnectVehicle.clicked.connect(self.btnConnectVehicleHandler)
         
         # 'Detect Camera' button
@@ -134,11 +140,8 @@ class MainWindow(QMainWindow):
         self.btnCamTrig.setSizePolicy(toolButtonSizePolicy)
         self.btnCamTrig.setText('Start Triggering Camera')
         self.btnCamTrig.clicked.connect(self.btnCamTrigHandler)
-#        self.btnCamTrig.clicked.connect(self.readAndWriteMPData)
 
         # TODO: when trigger button gets pressed create folder and put images there
-        
-        # TODO: add more buttons to abort camera trigger or other linux cmds
         
         # 'Load image' button
         self.btnLoad = QToolButton(self)
@@ -156,12 +159,10 @@ class MainWindow(QMainWindow):
         self.loadedImgNumber.setText('%d' %self.viewer.imgNumber)
         self.viewer.keyPressed.connect(self.keyPress)
         
-        # Button to change from drag/pan to getting pixel info
         self.btnPixInfo = QLabel(self)
         self.btnPixInfo.setText('<b>Pixel Info:</b>')
         self.btnPixInfo.setStyleSheet("QLabel { color: rgb(255,255,255)}") 
-#        self.btnPixInfo.setCheckable(True)
-#        self.btnPixInfo.clicked.connect(self.pixInfo)
+
         self.editPixInfo = QLineEdit(self)
         self.editPixInfo.setReadOnly(True)
         self.editPixInfo.setFixedWidth(100)
@@ -200,7 +201,6 @@ class MainWindow(QMainWindow):
         self.cropImage.setText('Crop and Process')
         self.cropImage.clicked.connect(self.imageCrop)
         self.cropImage.clicked.connect(self.pixInfo)
-#        self.cropImage.clicked.connect(self.readLog.transform)
         
         # Display VFR HUD Items
         self.heading = QLabel('<b>Heading:</b>')
@@ -309,7 +309,7 @@ class MainWindow(QMainWindow):
         Btnlayout.addWidget(self.cropImage)
         Btnlayout.addLayout(VFR_HUD)
         Btnlayout.addStretch(1)
-        # Add the last processed target image
+        ## Add the last processed target image
         Btnlayout.addLayout(Target)
         
         # Final GUI layout
@@ -330,8 +330,8 @@ class MainWindow(QMainWindow):
         self.timer.timeout.connect(self.updateImgDir)
 
         # Instantiate Worker Objects
-        self.sendLinuxCmd = CamTrigWorker.CamTrigWorker()
-        self.sendLinuxCmd2 = CamTrigWorker.CamTrigWorker()
+        self.sendLinuxCmd = CamTrigWorker()
+        self.sendLinuxCmd2 = CamTrigWorker()
         
         # Instantiate Thread Objects
         self.sendLinuxCmd_thread_startCamTrig = QThread()
@@ -345,12 +345,13 @@ class MainWindow(QMainWindow):
         self.sendLinuxCmd_thread_startCamTrig.started.connect(self.sendLinuxCmd.sendMkdirCmd)
         self.sendLinuxCmd_thread_detectCam.started.connect(self.sendLinuxCmd2.sendDetCmd)
         
+        # DroneKit vehicle connect thread
         self.connectToVehicle_thread = QThread()
         self.dronekit = DroneKitWorker()
         self.dronekit.moveToThread(self.connectToVehicle_thread)
         self.connectToVehicle_thread.started.connect(self.dronekit.connectVehicle)
         self.dronekit.finishedConnecting.connect(self.handleConnectedState)
-        
+
 #        self.sendLinuxCmd.respReady.connect(self.printStatus)
         
     ###########################################################################
@@ -372,26 +373,52 @@ class MainWindow(QMainWindow):
     
     @pyqtSlot()
     def closeVehicle(self):
-        self.dronekit.vehicle.close()
-        self.connectToVehicle_thread.quit
-        
+        try:
+            self.dronekit.vehicle.close()
+            self.connectToVehicle_thread.quit
+        except:
+            self.connectToVehicle_thread.quit
+
     @pyqtSlot()
     def handleConnectedState(self):
-        # if self.dronekit.status:
         self.btnConnectVehicle.setText('Vehicle Connected')
         self.btnConnectVehicle.setStyleSheet("QToolButton {background-color: green}")   
+        self.vehicleState = 2
     
     @pyqtSlot()
     def btnConnectVehicleHandler(self):
-        if self.btnConnectVehicle.isChecked():
+        if self.vehicleState == 0: # disconnected
+            # if self.btnConnectVehicle.isChecked():
             self.btnConnectVehicle.setText('Vehicle Connecting...')
             self.btnConnectVehicle.setStyleSheet("QToolButton {background-color: yellow}")
             self.connectToVehicle_thread.start()
-        else:
-            # TODO: Add a popup window to ask the user one last time before closing connection with the vehicle
-            self.btnConnectVehicle.setText('Vehicle Disconnected')
-            self.btnConnectVehicle.setStyleSheet("QToolButton {background-color: red}")            
+            self.vehicleState = 1
+        elif self.vehicleState == 1: # connecting
+            self.btnConnectVehicle.setText('Connect Vehicle')
+            self.btnConnectVehicle.setStyleSheet("QToolButton {background-color: red}")
             self.closeVehicle()
+            self.vehicleState = 0
+        elif self.vehicleState == 2: # vehicle is connected. ask again
+            quit_msg = "Are you sure you want to disconnect from the vehicle?"
+            reply = QMessageBox.question(self, 'Message', 
+                             quit_msg, QMessageBox.Yes, QMessageBox.No)
+            if reply == QMessageBox.Yes:
+                self.btnConnectVehicle.setText('Vehicle Disconnected')
+                self.btnConnectVehicle.setStyleSheet("QToolButton {background-color: red}")    
+                self.closeVehicle()
+                self.vehicleState = 0
+            elif reply == QMessageBox.No:
+                self.vehicleState = 2
+
+    def closeEvent(self, event):
+        quit_msg = "Are you sure you want to exit the program?"
+        reply = QMessageBox.question(self, 'Message', 
+                         quit_msg, QMessageBox.Yes, QMessageBox.No)
+    
+        if reply == QMessageBox.Yes:
+            event.accept()
+        else:
+            event.ignore()
 
     @pyqtSlot()
     def btnCamTrigHandler(self):
@@ -405,6 +432,8 @@ class MainWindow(QMainWindow):
 
     # TODO: wrap this method in QThread to display within GUI
     def pixInfo(self, pos): # TODO: methods to handle EXIF processing and calculations, read MP and GPS data
+        self.reader = ReadMPDataWorker()
+        # local variables
         altitude, heading, latitude, longitude = self.reader.readFromGPSData(self.viewer.imgNumber)        
         orientation, angleOfViewX, angleOfViewY, imgW, imgH = self.getEXIF()
 

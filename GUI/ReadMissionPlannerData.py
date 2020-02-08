@@ -27,6 +27,12 @@ class ReadMPDataWorker(object):
         self.MPMavLinkData = [] # Data from MAVLink received from AutoPilot's MP
         self.timeDiff = 500000 # given time difference limit for matching trigger time # TODO: find this limit
         self.lineNumber = 1
+        self.altitude = 0.
+        self.heading = 0.
+        self.lat = 0.
+        self.lon = 0.
+        self.latGPS = 0.
+        self.lonGPS = 0.
         
     def readFromGPSData(self, imgNumber):
         with open(self.GPSData) as file:
@@ -37,18 +43,18 @@ class ReadMPDataWorker(object):
                     dateTime = datetime.strptime(timeValue[:-3], '%Y/%m/%d %H:%M:%S.%f')           # convert to usec resolution
                     timeStamp = dateTime.replace(tzinfo=timezone.utc).timestamp()*1000000 # time in epoch (usec)
                     self.MPMavLinkData.append(self.readFromMPData(timeStamp)) # Data matching GPS time from MP                
-                    altitude = self.readFromMPData(timeStamp)[1]
-                    heading = self.readFromMPData(timeStamp)[2]
-                    lat = self.readFromMPData(timeStamp)[3]
-                    lon = self.readFromMPData(timeStamp)[4]
-                    latGPS = lists[2] # have a copy of GPSData coordinates
-                    lonGPS = lists[3]
+                    self.altitude = self.readFromMPData(timeStamp)[1]
+                    self.heading = self.readFromMPData(timeStamp)[2]
+                    self.lat = self.readFromMPData(timeStamp)[3]
+                    self.lon = self.readFromMPData(timeStamp)[4]
+                    self.latGPS = lists[2] # have a copy of GPSData coordinates
+                    self.lonGPS = lists[3]
                     # TODO: compare GPSData lat/lon with latGPS/lonGPS
                     # self.altitude.append(self.readFromMPData(timeStamp)[1])
                     # self.heading.append(self.readFromMPData(timeStamp)[2])
                     # self.latMP.append(self.readFromMPData(timeStamp)[3])
                     # self.lonMP.append(self.readFromMPData(timeStamp)[4])
-                    return altitude, heading, lat, lon
+                    return self.altitude, self.heading, self.lat, self.lon
                 self.lineNumber += 1
     
     def readFromMPData(self, targetTime):
