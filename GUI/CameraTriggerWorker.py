@@ -34,13 +34,13 @@ class CamTrigWorker(QObject):
         self.cmdMkdir = subprocess.Popen(["ssh", "{}".format(self.host), (self.dir%self.dirNum + self.triggerCam)], shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         self.dirNum += 1        
         for line in iter(self.cmdMkdir.stdout.readline, b''):
-            sys.stdout.write(line)
+            sys.stdout.write(line.decode('utf-8'))
     
     @pyqtSlot()
     def sendDetCmd(self):
         self.cmdDetectCam = subprocess.Popen(["ssh", "{}".format(self.host), self.detectCam], shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         for line in iter(self.cmdDetectCam.stdout.readline, b''):
-            sys.stdout.write(line)
+            sys.stdout.write(line.decode('utf-8'))
 #        self.result = self.cmdDetectCam.stdout.read()
 #        if self.result == []:
 #            error = self.cmdDetectCam.stderr.read()
@@ -53,7 +53,7 @@ class CamTrigWorker(QObject):
     def sendTrigCmd(self):
         self.cmdTrigCam = subprocess.Popen(["ssh", "{}".format(self.host), self.triggerCam], shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         for line in iter(self.cmdTrigCam.stdout.readline, b''):
-            sys.stdout.write(line)
+            sys.stdout.write(line.decode('utf-8'))
     
     @pyqtSlot()
     def cancelTrigCmd(self):
