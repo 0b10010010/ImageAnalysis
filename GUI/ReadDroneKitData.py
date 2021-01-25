@@ -40,8 +40,8 @@ class DroneKitWorker(QObject):
         '''
         # print(attr_name, val)
         VFR_HUD = open('MPData/VFR_HUD.txt', 'a')
-        VFR_HUD.write("Time(usec):{},".format(self.vehicle.system_time.time_unix_usec)  + "Altitude:{},".format(self.vehicle.location.global_frame.alt) \
-                      + "Heading:{},".format(self.vehicle.heading) + "Lat:{},".format(self.vehicle.location.global_frame.lat) + "Lon:{}\n".format(self.vehicle.location.global_frame.lon))
+        VFR_HUD.write("Time(usec):{},".format(self.vehicle.system_time.time_unix_usec)  + "Altitude:{},".format(self.vehicle.location.global_relative_frame.alt) \
+                      + "Heading:{},".format(self.vehicle.heading) + "Lat:{},".format(self.vehicle.location.global_relative_frame.lat) + "Lon:{}\n".format(self.vehicle.location.global_relative_frame.lon))
         
         # self.attributeListener_thread = Thread(target=self.addAttributeListener, args = ())
         # self.attributeListener_thread.daemon = True

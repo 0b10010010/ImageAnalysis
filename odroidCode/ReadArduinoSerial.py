@@ -23,13 +23,17 @@ class ReadArduinoSerialWorker():
     
     def readSerialAndWriteToFile(self):
         #TODO: maybe wait for a sentence to be buffered?
-        while (True):
-            self.msg = self.arduino.readline()
-            self.GPSData = open('GPSData.txt', 'a')
-    #        self.GPSData = open('/home/spycat/Desktop/image-analysis/ProcessedTargets/GPSData.txt', 'a') # TODO: save to shared directory where images will be
-            self.GPSData.write(self.msg.decode('utf-8'))
-#        self.GPSData.close()
-
+        try:
+            while (True):
+                if self.arduino.inWaiting():
+                    self.msg = self.arduino.readline()
+                    self.GPSData = open('GPSData.txt', 'a')
+            #        self.GPSData = open('/home/spycat/Desktop/image-analysis/ProcessedTargets/GPSData.txt', 'a') # TODO: save to shared directory where images will be
+                    self.GPSData.write(self.msg.decode('utf-8'))
+    #        self.GPSData.close()
+        except:
+            pass
+            
 # run infinitely in the background on Odroid
 if __name__ == '__main__':
     r = ReadArduinoSerialWorker()

@@ -41,7 +41,7 @@ class PhotoViewer(QGraphicsView):
         self.setBackgroundBrush(QBrush(QColor(209,209,209)))
         self.setFrameShape(QFrame.NoFrame)
 #        self.imgPath = path.dirname(path.realpath(__file__)) + '/CamFeedbackTest/img/'
-         self.imgPath = '/home/spykat/Desktop/imgTargetDir/' # TODO: This is the shared dir between onboard computer and GCS
+        self.imgPath = '/home/spykat/Desktop/imgTargetDir/' # TODO: This is the shared dir between onboard computer and GCS
         # self.imgPath = '/home/spykat/Desktop/TestFlightDataBackUp/imgTargetDirBackUp/imgTargetDir/'
 #        self.imgPath = '/home/alexk/Desktop/Capture#1/'
         self.imgList = listdir(self.imgPath)

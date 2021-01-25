@@ -25,7 +25,10 @@ class ReadMPDataWorker(object):
         self.MPData = 'FlightData/VFR_HUD.txt'
         self.GPSData = 'FlightData/GPSData.txt'
         self.MPMavLinkData = [] # Data from MAVLink received from AutoPilot's MP
-        self.timeDiff = 500000 # given time difference limit for matching trigger time # TODO: find this limit
+        # self.timeDiff = 150000 # given time difference limit for matching trigger time # TODO: find this limit
+        self.timeDiff = 900000 # 500ms
+        # MP VFR items update at 700ms interval (0.7s)
+        # GPS Data interval at 30000ms interval (3s)
         self.lineNumber = 1
         self.altitude = 0.
         self.heading = 0.
@@ -40,21 +43,23 @@ class ReadMPDataWorker(object):
                 if (self.lineNumber == imgNumber+1): # imgNumber index starts at 0
                     lists = [lines.strip() for lines in line.split(',')]
                     timeValue = lists[1][5:]
-                    dateTime = datetime.strptime(timeValue[:-3], '%Y/%m/%d %H:%M:%S.%f')           # convert to usec resolution
+                    # t, timeValue = lists[1].split(':')
+                    # TODO: Check the length to make sure timeValue matches the format
+                    dateTime = datetime.strptime(timeValue[:-3],'%Y/%m/%d %H:%M:%S.%f')           # convert to usec resolution
                     timeStamp = dateTime.replace(tzinfo=timezone.utc).timestamp()*1000000 # time in epoch (usec)
                     self.MPMavLinkData.append(self.readFromMPData(timeStamp)) # Data matching GPS time from MP                
-                    self.altitude = self.readFromMPData(timeStamp)[1]
-                    self.heading = self.readFromMPData(timeStamp)[2]
-                    self.lat = self.readFromMPData(timeStamp)[3]
-                    self.lon = self.readFromMPData(timeStamp)[4]
-                    self.latGPS = lists[2] # have a copy of GPSData coordinates
-                    self.lonGPS = lists[3]
+                    self.altitude = self.readFromMPData(timeStamp)[1].split(':')[1]
+                    self.heading = self.readFromMPData(timeStamp)[2].split(':')[1]
+                    self.lat = self.readFromMPData(timeStamp)[3].split(':')[1]
+                    self.lon = self.readFromMPData(timeStamp)[4].split(':')[1]
+                    la, self.latGPS = lists[2].split(':') # have a copy of GPSData coordinates
+                    lo, self.lonGPS = lists[3].split(':')
                     # TODO: compare GPSData lat/lon with latGPS/lonGPS
                     # self.altitude.append(self.readFromMPData(timeStamp)[1])
                     # self.heading.append(self.readFromMPData(timeStamp)[2])
                     # self.latMP.append(self.readFromMPData(timeStamp)[3])
                     # self.lonMP.append(self.readFromMPData(timeStamp)[4])
-                    return self.altitude, self.heading, self.lat, self.lon
+                    return self.altitude, self.heading, self.latGPS, self.lonGPS
                 self.lineNumber += 1
     
     def readFromMPData(self, targetTime):
@@ -66,10 +71,10 @@ class ReadMPDataWorker(object):
             lineNumber = 1
             for line in file:
                 lists = [lines.strip() for lines in line.split(',')]
-                print(lists)
+                # print(lists)
                 key, value = lists[0].split(':')
                 lineNumber += 1
-                if (np.abs(int(value)-targetTime) < self.timeDiff): # 500000 is 500ms difference
+                if (np.abs(int(value)-targetTime) > self.timeDiff): # 500000 is 500ms difference
                     return lists
 
 # mp = ReadMPDataWorker()

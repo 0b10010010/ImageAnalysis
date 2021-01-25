@@ -54,7 +54,7 @@ from DroneKit import DroneKitWorker
 from CameraTriggerWorker import CamTrigWorker
 # TODO: using EXIF orientation number rotate the target image
 from PIL import Image, ExifTags
-from numpy import sin, cos, arctan, pi, array#, tan, empty
+from numpy import sin, cos, arctan, pi, matrix, tan, multiply#, empty
     
 class MainWindow(QMainWindow):
     '''
@@ -428,24 +428,49 @@ class MainWindow(QMainWindow):
     # TODO: wrap this method in QThread to display within GUI
     def pixInfo(self, pos): # TODO: methods to handle EXIF processing and calculations, read MP and GPS data
         self.reader = ReadMPDataWorker()
-        # local variables
-        altitude, heading, latitude, longitude = self.reader.readFromGPSData(self.viewer.imgNumber)        
-        orientation, angleOfViewX, angleOfViewY, imgW, imgH = self.getEXIF()
-
-        distReal = array([(2*altitude)/cos(angleOfViewX/2), (2*altitude)/cos(angleOfViewY/2)])
-        scale = array([distReal[0]/imgW, distReal[1]/imgH])
-        offsetTarget = array([scale[0]*self.pixelX, scale[1]*self.pixelY])
-        # TODO: attach the camera aligned with the Pixhawk's direction for consistent heading
-        mapRealtoCamera = array([cos(heading), -sin(heading)], [sin(heading), cos(heading)])
+        # local variables        
+        altitude, heading, latitude, longitude = self.reader.readFromGPSData(self.viewer.imgNumber)
+        altitude = float(altitude) # MAVLink reports in mm than DroneKit takes care of converting to m.
+        headingCam = float(heading)
+        heading = float(heading)
+        latitude = float(latitude)
+        longitude = float(longitude)
+        # TODO: receive relative alt instead of MSL       
+        altitude -= 309.8 # subtrack known alt of MHK (m).
+        altitude *= 3.28084 # convert altitude to ft
+        headingCam += 180 # camera is 180 rotated from the Pixhawk's direction
+        if headingCam >= 360:
+            headingCam -= 360
+            
+        orientation, angleOfViewX, angleOfViewY = self.getEXIF()
+        imgW = 6000 # known image resolution of A6000
+        imgH = 4000
         
-        posReal = mapRealtoCamera.dot(offsetTarget)
-        targetGPS = array([posReal[0]/longitude, posReal[1]/latitude])
+        latlon = matrix([[latitude],[longitude]])
+        rotation = matrix([[cos(headingCam), sin(headingCam)], [-sin(headingCam), cos(headingCam)]]) # rotate camera to NE world
+        offsetTargetCam = matrix([[self.pixelX-imgW/2],[self.pixelY-imgH/2]]) # in pixels
+        offsetTargetNED = rotation.dot(offsetTargetCam) # rotated the camera to NE world frame
+        scale = matrix([[(2/imgW)*altitude*tan(angleOfViewX/2)],[(2/imgH)*altitude*tan(angleOfViewY/2)]])
+        offsetReal = multiply(offsetTargetNED, scale) # target offset in autopilot frame (ft)
+        lat = cos(latlon[0,0]*(pi/180))
+        # lon = cos(latlon[1,0]*(pi/180))        
+        # ft2deg = matrix([[1/(lat*364286.0341)],[1/(lon*280162.91106970585)]])# convert distReal to degrees
+        latlonTarget = latlon + (1/(lat*365228.16))*offsetReal     
+
+        # distReal = array([(2*altitude)/cos(angleOfViewX/2), (2*altitude)/cos(angleOfViewY/2)])
+        # scale = array([distReal[0]/imgH, distReal[1]/imgW])
+        # offsetTarget = array([scale[0]*self.pixelX, scale[1]*self.pixelY])
+        # # TODO: attach the camera aligned with the Pixhawk's direction for consistent heading
+        # mapRealtoCamera = array([[cos(heading), sin(heading)], [-sin(heading), cos(heading)]])
+        
+        # posReal = mapRealtoCamera.dot(offsetTarget)
+        # targetGPS = array([posReal[0]/longitude, posReal[1]/latitude])
         
         # display the target's info on GUI
         self.headingValue.setText('{}'.format(heading))
-        self.altitudeValue.setText('{}'.format(altitude))
-        self.latitudeValue.setText('{}'.format(targetGPS[1]))
-        self.longitudeValue.setText('{}'.format(targetGPS[0]))
+        self.altitudeValue.setText('{0:.6f}'.format(altitude))
+        self.latitudeValue.setText('{0:.6f}'.format(latlonTarget[0,0]))
+        self.longitudeValue.setText('{0:.6f}'.format(latlonTarget[1,0]))
     
     def keyPress(self, imgNumber):
         self.loadedImgNumber.setText('{}'.format(imgNumber))
@@ -489,8 +514,8 @@ class MainWindow(QMainWindow):
         exifData = image._getexif()
         orientation = 0
     #    dateTime    = 0.0
-        imgWidth    = 0
-        imgHeight   = 0
+        # imgWidth    = 0
+        # imgHeight   = 0
         focalLen    = 0.0    # focal length in mm
         angleOfViewX = 0.0 # AOV along the width of the sensor (Sony A6000)
         angleOfViewY = 0.0 # AOV along the height of the sensor (Sony A6000)
@@ -505,18 +530,20 @@ class MainWindow(QMainWindow):
     #            print('%s = %s' % (ExifTags.TAGS.get(tag), value))
             elif ExifTags.TAGS.get(tag) == 'FocalLength':
                 focalLen = value[0]/value[1]
-                angleOfViewX = 2*arctan(23.5/(2*focalLen))*(180/pi)
-                angleOfViewY = 2*arctan(15.6/(2*focalLen))*(180/pi)
+                angleOfViewX = 2*arctan(23.5/(2*focalLen))*(180./pi)
+                angleOfViewY = 2*arctan(15.6/(2*focalLen))*(180./pi)
             elif ExifTags.TAGS.get(tag) == 'ExifImageWidth':
-                imgWidth = value
+                # imgWidth = value
+                pass
             elif ExifTags.TAGS.get(tag) == 'ExifImageHeight':
-                imgHeight = value
+                # imgHeight = value
+                pass
             elif ExifTags.TAGS.get(tag) == 'ExposureTime':
                 pass
             elif ExifTags.TAGS.get(tag) == 'ISOSpeedRatings':
                 pass
             
-        return orientation, angleOfViewX, angleOfViewY, imgWidth, imgHeight        
+        return orientation, angleOfViewX, angleOfViewY      
     
     # Receive and display the signal when cropped pixmap is created
     @pyqtSlot(QPixmap)
