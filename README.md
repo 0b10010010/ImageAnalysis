@@ -17,5 +17,5 @@ To navigate through images simply press arrow keys.
 
 # Tasks
 - [x] lsyncd
-- [x] stm32 camera gps board
+- [x] stm32 camera gps board: No need to use Arduino anymore, use GPSCameraBoard
 - [ ] Geotagging
